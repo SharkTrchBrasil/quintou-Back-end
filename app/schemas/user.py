@@ -14,6 +14,7 @@ class UserBase(BaseSchema):
 
 class UserCreate(UserBase):
     password: str = Field(min_length=8)
+    is_host: bool = False
 
 class UserLogin(BaseSchema):
     email: EmailStr

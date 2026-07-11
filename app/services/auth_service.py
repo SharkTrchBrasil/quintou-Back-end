@@ -34,7 +34,8 @@ class AuthService:
             hashed_password=hashed_password,
             full_name=user_in.full_name,
             phone=user_in.phone,
-            cpf=user_in.cpf
+            cpf=user_in.cpf,
+            is_host=user_in.is_host
         )
         self.db.add(db_user)
         await self.db.commit()
