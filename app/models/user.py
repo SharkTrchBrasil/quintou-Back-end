@@ -37,6 +37,9 @@ class User(Base):
     avg_response_time_minutes = Column(Integer, nullable=True)
     
     stripe_account_id = Column(String, nullable=True)
+    stripe_customer_id = Column(String, nullable=True)
+    stripe_account_status = Column(String, default="pending")
+    stripe_onboarding_complete = Column(Boolean, default=False)
     
     average_rating = Column(Float, default=0.0)
     total_reviews = Column(Integer, default=0)
