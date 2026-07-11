@@ -4,8 +4,9 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 from decimal import Decimal
 from app.schemas.common import BaseSchema
-from app.models.space import SpaceCategory, CancellationPolicy, AddonPricingType, ListingType, ListingPricingMode
+from app.models.space import CancellationPolicy, AddonPricingType, ListingType, ListingPricingMode
 from app.schemas.user import UserSummary
+from app.schemas.category import CategoryResponse
 
 class AvailabilityRuleBase(BaseSchema):
     day_of_week: int = Field(ge=0, le=6)
@@ -62,7 +63,7 @@ class SpaceBase(BaseSchema):
     listing_type: ListingType = ListingType.SPACE
     title: str
     description: str
-    category: SpaceCategory
+    category_id: UUID
     
     # Location
     address_line: str
@@ -173,13 +174,14 @@ class SpaceResponse(SpaceBase):
     pricing_tiers: List[SpacePricingTierResponse]
     addons: List[SpaceAddonResponse]
     host: UserSummary
+    category: CategoryResponse
     created_at: datetime
 
 class SpaceSummary(BaseSchema):
     id: UUID
     listing_type: ListingType = ListingType.SPACE
     title: str
-    category: SpaceCategory
+    category: CategoryResponse
     city: str
     state: str
     neighborhood: str

@@ -1,4 +1,4 @@
-from app.routers import auth, users, spaces, bookings, reviews, payments, chat, upload, health, favorites, notifications, reports, promotions
+from app.routers import auth, users, spaces, bookings, reviews, payments, chat, upload, health, favorites, notifications, reports, promotions, categories
 
 def include_routers(app):
     app.include_router(health.router)
@@ -14,3 +14,4 @@ def include_routers(app):
     app.include_router(notifications.router)
     app.include_router(reports.router)
     app.include_router(promotions.router)
+    app.include_router(categories.router)

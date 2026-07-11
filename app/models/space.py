@@ -20,20 +20,6 @@ class ListingPricingMode(str, enum.Enum):
     PER_DAY = "PER_DAY"     # Pula-pula: R$150/dia (diária)
     FIXED = "FIXED"         # DJ: R$1.500 o pacote
 
-class SpaceCategory(str, enum.Enum):
-    # Espaços
-    PISCINA = "PISCINA"
-    CHURRASQUEIRA = "CHURRASQUEIRA"
-    SALAO_FESTAS = "SALAO_FESTAS"
-    QUADRA = "QUADRA"
-    ESTUDIO = "ESTUDIO"
-    SITIO = "SITIO"
-    # Equipamentos
-    BRINQUEDOS = "BRINQUEDOS"     # Pula-pula, cama elástica, tobogã
-    MOBILIARIO = "MOBILIARIO"     # Mesas, cadeiras, toalhas, tendas
-    DECORACAO = "DECORACAO"       # Iluminação, balões, cenários
-    SERVICOS = "SERVICOS"         # DJ, buffet, fotógrafo
-    OUTRO = "OUTRO"
 
 class CancellationPolicy(str, enum.Enum):
     FLEXIVEL = "FLEXIVEL"
@@ -49,7 +35,7 @@ class Space(Base):
     listing_type = Column(Enum(ListingType), default=ListingType.SPACE, nullable=False)
     title = Column(String, nullable=False)
     description = Column(Text, nullable=False)
-    category = Column(Enum(SpaceCategory), nullable=False)
+    category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id"), nullable=False)
     
     # Localização
     address_line = Column(String, nullable=False)
@@ -145,6 +131,7 @@ class Space(Base):
     
     # Relacionamentos
     host = relationship("User", back_populates="spaces")
+    category = relationship("Category")
     images = relationship("SpaceImage", back_populates="space", cascade="all, delete-orphan", order_by="SpaceImage.order")
     availability_rules = relationship("AvailabilityRule", back_populates="space", cascade="all, delete-orphan")
     bookings = relationship("Booking", back_populates="space", cascade="all, delete-orphan")

@@ -19,6 +19,7 @@ class SpaceService:
             selectinload(Space.availability_rules),
             selectinload(Space.pricing_tiers),
             selectinload(Space.addons),
+            selectinload(Space.category),
             selectinload(Space.host)
         ).where(Space.id == space_id)
         
@@ -61,20 +62,21 @@ class SpaceService:
 
     async def list_spaces(
         self, limit: int = 20, offset: int = 0, 
-        city: str = None, category: str = None, 
+        city: str = None, category_id: UUID = None, 
         min_price: float = None, max_price: float = None,
         lat: float = None, lng: float = None, radius_km: float = 50.0
     ) -> list[Space]:
         query = select(Space).options(
-            selectinload(Space.images)
+            selectinload(Space.images),
+            selectinload(Space.category)
         ).where(Space.is_active == True)
         
         if city:
             # Bug fix: avoid wildcard interpolation if not needed or escape it
             query = query.where(Space.city.ilike(f"{city}%"))
         
-        if category:
-            query = query.where(Space.category == category)
+        if category_id:
+            query = query.where(Space.category_id == category_id)
             
         if min_price is not None:
             query = query.where(Space.price >= min_price)
@@ -103,7 +105,8 @@ class SpaceService:
 
     async def list_host_spaces(self, host_id: UUID, limit: int = 20, offset: int = 0) -> list[Space]:
         query = select(Space).options(
-            selectinload(Space.images)
+            selectinload(Space.images),
+            selectinload(Space.category)
         ).where(Space.host_id == host_id).limit(limit).offset(offset)
         result = await self.db.execute(query)
         return list(result.scalars().all())

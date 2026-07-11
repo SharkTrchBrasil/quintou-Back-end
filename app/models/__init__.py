@@ -1,3 +1,4 @@
+from app.models.category import Category
 from app.models.user import User
 from app.models.space import Space, SpaceImage, AvailabilityRule, SpacePricingTier, SpaceAddon
 from app.models.promotion import SpacePromotion
@@ -10,6 +11,7 @@ from app.models.notification import Notification, NotificationType
 from app.models.report import Report, ReportReason, ReportStatus
 
 __all__ = [
+    "Category",
     "User",
     "Space",
     "SpaceImage",
