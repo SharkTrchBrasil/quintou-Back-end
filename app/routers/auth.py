@@ -4,8 +4,27 @@ from app.database import get_db
 from app.schemas.user import UserCreate, UserLogin, UserResponse, Token
 from app.schemas.auth import RefreshTokenRequest, ForgotPasswordRequest, ResetPasswordRequest
 from app.services.auth_service import AuthService
+from pydantic import BaseModel
+
+class CpfLookupRequest(BaseModel):
+    cpf: str
+
+class CpfLookupResponse(BaseModel):
+    is_valid: bool
+    real_name: str | None = None
+    birth_date: str | None = None
+    error_message: str | None = None
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
+
+@router.post("/lookup-cpf", response_model=CpfLookupResponse)
+async def lookup_cpf(request: CpfLookupRequest):
+    cpf_clean = ''.join(filter(str.isdigit, request.cpf))
+    if len(cpf_clean) != 11:
+        return CpfLookupResponse(is_valid=False, error_message="CPF inválido")
+    
+    # Simulação da consulta na Receita Federal
+    return CpfLookupResponse(is_valid=True, real_name="João Silva Pereira", birth_date="1990-05-15")
 
 @router.post("/register", response_model=UserResponse, status_code=201)
 async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
