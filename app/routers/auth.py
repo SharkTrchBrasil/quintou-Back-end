@@ -5,6 +5,8 @@ from app.schemas.user import UserCreate, UserLogin, UserResponse, Token
 from app.schemas.auth import RefreshTokenRequest, ForgotPasswordRequest, ResetPasswordRequest
 from app.services.auth_service import AuthService
 from pydantic import BaseModel
+import httpx
+from app.config import settings
 
 class CpfLookupRequest(BaseModel):
     cpf: str
@@ -23,8 +25,23 @@ async def lookup_cpf(request: CpfLookupRequest):
     if len(cpf_clean) != 11:
         return CpfLookupResponse(is_valid=False, error_message="CPF inválido")
     
-    # Simulação da consulta na Receita Federal
-    return CpfLookupResponse(is_valid=True, real_name="João Silva Pereira", birth_date="1990-05-15")
+    if not settings.CPFHUB_API_KEY:
+        # Simulação se a chave não estiver configurada
+        return CpfLookupResponse(is_valid=True, real_name="Usuário Teste", birth_date="1990-05-15")
+        
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"https://api.cpfhub.io/cpf/{cpf_clean}",
+                headers={"x-api-key": settings.CPFHUB_API_KEY},
+                timeout=10.0
+            )
+            if response.status_code == 200:
+                data = response.json()
+                return CpfLookupResponse(is_valid=True, real_name=data.get("nome", "Usuário Visitante"))
+            return CpfLookupResponse(is_valid=False, error_message="CPF não encontrado")
+    except Exception:
+        return CpfLookupResponse(is_valid=False, error_message="Falha na comunicação com o servidor de CPF")
 
 @router.post("/register", response_model=UserResponse, status_code=201)
 async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):

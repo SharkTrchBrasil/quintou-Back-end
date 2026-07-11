@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
     
+    # CPF Hub
+    CPFHUB_API_KEY: str | None = None
+    
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
         env_file=".env", 
         env_file_encoding="utf-8",
