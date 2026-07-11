@@ -27,10 +27,16 @@ async def list_spaces(
     category: str = None,
     min_price: float = None,
     max_price: float = None,
+    lat: float = None,
+    lng: float = None,
+    radius_km: float = Query(50.0, ge=1.0),
     db: AsyncSession = Depends(get_db)
 ):
     space_service = SpaceService(db)
-    return await space_service.list_spaces(limit=limit, offset=offset, city=city, category=category, min_price=min_price, max_price=max_price)
+    return await space_service.list_spaces(
+        limit=limit, offset=offset, city=city, category=category, 
+        min_price=min_price, max_price=max_price, lat=lat, lng=lng, radius_km=radius_km
+    )
 
 @router.get("/my", response_model=List[SpaceResponse])
 async def list_my_spaces(

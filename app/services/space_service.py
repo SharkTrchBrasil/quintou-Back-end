@@ -2,6 +2,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
+from sqlalchemy import func
 from fastapi import HTTPException
 from app.models.space import Space, SpaceImage, AvailabilityRule, SpacePricingTier, SpaceAddon
 from app.schemas.space import SpaceCreate, SpaceUpdate
@@ -61,7 +62,8 @@ class SpaceService:
     async def list_spaces(
         self, limit: int = 20, offset: int = 0, 
         city: str = None, category: str = None, 
-        min_price: float = None, max_price: float = None
+        min_price: float = None, max_price: float = None,
+        lat: float = None, lng: float = None, radius_km: float = 50.0
     ) -> list[Space]:
         query = select(Space).options(
             selectinload(Space.images)
@@ -79,6 +81,20 @@ class SpaceService:
             
         if max_price is not None:
             query = query.where(Space.price <= max_price)
+            
+        if lat is not None and lng is not None:
+            # Haversine formula in KM
+            distance = (
+                6371 * func.acos(
+                    func.cos(func.radians(lat)) * 
+                    func.cos(func.radians(Space.latitude)) * 
+                    func.cos(func.radians(Space.longitude) - func.radians(lng)) + 
+                    func.sin(func.radians(lat)) * 
+                    func.sin(func.radians(Space.latitude))
+                )
+            )
+            query = query.where(distance <= radius_km)
+            query = query.order_by(distance)
             
         query = query.limit(limit).offset(offset)
         
