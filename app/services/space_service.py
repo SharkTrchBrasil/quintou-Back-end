@@ -64,7 +64,16 @@ class SpaceService:
         self, limit: int = 20, offset: int = 0, 
         city: str = None, category_id: UUID = None, 
         min_price: float = None, max_price: float = None,
-        lat: float = None, lng: float = None, radius_km: float = 50.0
+        lat: float = None, lng: float = None, radius_km: float = 50.0,
+        # Filtros avançados
+        min_guests: int = None, instant_book: bool = None,
+        allows_smoking: bool = None, allows_alcohol: bool = None,
+        allows_loud_music: bool = None, allows_parties: bool = None,
+        allows_pets: bool = None, allows_children: bool = None,
+        has_restroom: bool = None, has_parking: bool = None,
+        is_outdoor: bool = None, is_ada_friendly: bool = None,
+        cancellation_policy: str = None, amenities: list = None,
+        sort_by: str = None,
     ) -> list[Space]:
         query = select(Space).options(
             selectinload(Space.images),
@@ -72,7 +81,6 @@ class SpaceService:
         ).where(Space.is_active == True)
         
         if city:
-            # Bug fix: avoid wildcard interpolation if not needed or escape it
             query = query.where(Space.city.ilike(f"{city}%"))
         
         if category_id:
@@ -83,6 +91,47 @@ class SpaceService:
             
         if max_price is not None:
             query = query.where(Space.price <= max_price)
+        
+        # Capacidade mínima de convidados
+        if min_guests is not None:
+            query = query.where(Space.max_guests >= min_guests)
+        
+        # Instant Book (sem aprovação)
+        if instant_book is not None:
+            query = query.where(Space.requires_approval == (not instant_book))
+        
+        # House Rules
+        if allows_smoking is not None:
+            query = query.where(Space.allows_smoking == allows_smoking)
+        if allows_alcohol is not None:
+            query = query.where(Space.allows_alcohol == allows_alcohol)
+        if allows_loud_music is not None:
+            query = query.where(Space.allows_loud_music == allows_loud_music)
+        if allows_parties is not None:
+            query = query.where(Space.allows_parties == allows_parties)
+        if allows_pets is not None:
+            query = query.where(Space.allows_pets == allows_pets)
+        if allows_children is not None:
+            query = query.where(Space.allows_children == allows_children)
+        
+        # Infraestrutura
+        if has_restroom is not None:
+            query = query.where(Space.has_restroom == has_restroom)
+        if has_parking is not None:
+            query = query.where(Space.has_parking == has_parking)
+        if is_outdoor is not None:
+            query = query.where(Space.is_outdoor == is_outdoor)
+        if is_ada_friendly is not None:
+            query = query.where(Space.is_ada_friendly == is_ada_friendly)
+        
+        # Política de cancelamento
+        if cancellation_policy is not None:
+            query = query.where(Space.cancellation_policy == cancellation_policy)
+        
+        # Amenities (JSONB contains)
+        if amenities:
+            for amenity in amenities:
+                query = query.where(Space.amenities.contains([amenity]))
             
         if lat is not None and lng is not None:
             # Haversine formula in KM
@@ -96,7 +145,18 @@ class SpaceService:
                 )
             )
             query = query.where(distance <= radius_km)
-            query = query.order_by(distance)
+            if sort_by is None:
+                query = query.order_by(distance)
+        
+        # Ordenação
+        if sort_by == "price_asc":
+            query = query.order_by(Space.price.asc())
+        elif sort_by == "price_desc":
+            query = query.order_by(Space.price.desc())
+        elif sort_by == "rating":
+            query = query.order_by(Space.average_rating.desc())
+        elif sort_by == "newest":
+            query = query.order_by(Space.created_at.desc())
             
         query = query.limit(limit).offset(offset)
         
