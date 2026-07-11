@@ -102,6 +102,9 @@ class SpaceBase(BaseSchema):
     allows_smoking: bool = False
     allows_alcohol: bool = False
     allows_loud_music: bool = False
+    allows_commercial: bool = False
+    has_heated_pool: bool = False
+    has_hot_tub: bool = False
     rules: Optional[str] = None
     
     # Limits

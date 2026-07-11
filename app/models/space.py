@@ -78,6 +78,9 @@ class Space(Base):
     allows_smoking = Column(Boolean, default=False)
     allows_alcohol = Column(Boolean, default=False)
     allows_loud_music = Column(Boolean, default=False)
+    allows_commercial = Column(Boolean, default=False)
+    has_heated_pool = Column(Boolean, default=False)
+    has_hot_tub = Column(Boolean, default=False)
     rules = Column(Text, nullable=True) # Regras em texto livre
     
     # Políticas e Limites
