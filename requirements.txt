@@ -16,3 +16,4 @@ python-dotenv
 redis
 pytest
 pytest-asyncio
+firebase-admin
