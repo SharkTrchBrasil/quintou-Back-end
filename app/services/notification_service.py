@@ -2,8 +2,11 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import update
+from sqlalchemy.orm import selectinload
 from fastapi import HTTPException
 from app.models.notification import Notification, NotificationType
+from app.models.user import User
+from app.services.firebase_service import FirebaseService
 
 class NotificationService:
     def __init__(self, db: AsyncSession):
@@ -21,7 +24,16 @@ class NotificationService:
         await self.db.commit()
         await self.db.refresh(notif)
         
-        # TODO: Integração com Firebase Cloud Messaging (FCM) para Push Notifications reais
+        # Load user to get fcm_token
+        user = await self.db.get(User, user_id)
+        if user and user.fcm_token:
+            FirebaseService.send_push_notification(
+                fcm_token=user.fcm_token,
+                title=title,
+                body=body,
+                data=data or {}
+            )
+            
         return notif
 
     async def list_notifications(self, user_id: UUID, limit: int = 20, offset: int = 0) -> list[Notification]:

@@ -1,5 +1,5 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.schemas.user import UserUpdate, UserResponse
@@ -10,7 +10,14 @@ from app.services.user_service import UserService
 router = APIRouter(prefix="/users", tags=["Usuários"])
 
 @router.get("/me", response_model=UserResponse)
-async def get_me(current_user: User = Depends(get_current_user)):
+async def get_me(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    from sqlalchemy.sql import func
+    current_user.last_seen_at = func.now()
+    await db.commit()
+    await db.refresh(current_user)
     return current_user
 
 @router.put("/me", response_model=UserResponse)
@@ -37,3 +44,13 @@ async def get_user(
 ):
     user_service = UserService(db)
     return await user_service.get(user_id)
+
+@router.put("/me/fcm-token")
+async def update_fcm_token(
+    fcm_token: str = Body(..., embed=True),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    current_user.fcm_token = fcm_token
+    await db.commit()
+    return {"status": "ok"}

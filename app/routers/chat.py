@@ -1,11 +1,12 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
-from app.schemas.chat import MessageCreate, MessageResponse, ConversationResponse
+from app.schemas.chat import MessageCreate, MessageResponse, ConversationResponse, ConversationCreate
 from app.models.user import User
 from app.dependencies import get_current_user, get_current_user_ws
 from app.services.chat_service import ChatService
+from app.services.contact_filter import contains_contact_info
 from typing import Dict, List
 
 router = APIRouter(tags=["Chat"])
@@ -35,13 +36,34 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
+@router.post("/conversations", response_model=ConversationResponse)
+async def start_conversation(
+    conv_in: ConversationCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    chat_service = ChatService(db)
+    conv = await chat_service.get_or_create_conversation_by_space(conv_in.space_id, current_user.id)
+    
+    # Reload conversation via list_conversations to get formatted UI fields
+    # Alternatively, we could manually format it here, but list_conversations does it perfectly
+    conversations = await chat_service.list_conversations(current_user.id, limit=1)
+    for c in conversations:
+        if c["id"] == conv.id:
+            return c
+            
+    raise HTTPException(status_code=500, detail="Failed to format conversation")
+
 @router.post("/conversations/{booking_id}/messages", response_model=MessageResponse)
-async def send_message(
+async def send_message_booking(
     booking_id: UUID,
     msg_in: MessageCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    if contains_contact_info(msg_in.content):
+        raise HTTPException(status_code=400, detail="Sua mensagem foi bloqueada pois contém informações de contato não permitidas pelas nossas políticas.")
+        
     chat_service = ChatService(db)
     conv = await chat_service.get_or_create_conversation(booking_id)
     msg = await chat_service.send_message(current_user.id, conv.id, msg_in)
@@ -49,7 +71,53 @@ async def send_message(
     # Notifica via WebSocket
     await manager.broadcast_to_conversation(
         conv.id,
-        {"event": "new_message", "data": {"id": str(msg.id), "content": msg.content, "sender_id": str(msg.sender_id)}}
+        {
+            "type": "new_message", 
+            "data": {
+                "id": str(msg.id), 
+                "content": msg.content, 
+                "sender_id": str(msg.sender_id),
+                "created_at": msg.created_at.isoformat(),
+                "sender": {
+                    "id": str(current_user.id),
+                    "full_name": current_user.full_name,
+                    "avatar_url": current_user.avatar_url
+                }
+            }
+        }
+    )
+    return msg
+
+@router.post("/conversations/{conversation_id}/messages", response_model=MessageResponse)
+async def send_message(
+    conversation_id: UUID,
+    msg_in: MessageCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    if contains_contact_info(msg_in.content):
+        raise HTTPException(status_code=400, detail="Sua mensagem foi bloqueada pois contém informações de contato não permitidas pelas nossas políticas.")
+        
+    chat_service = ChatService(db)
+    msg = await chat_service.send_message(current_user.id, conversation_id, msg_in)
+    
+    # Notifica via WebSocket
+    await manager.broadcast_to_conversation(
+        conversation_id,
+        {
+            "type": "new_message", 
+            "data": {
+                "id": str(msg.id), 
+                "content": msg.content, 
+                "sender_id": str(msg.sender_id),
+                "created_at": msg.created_at.isoformat(),
+                "sender": {
+                    "id": str(current_user.id),
+                    "full_name": current_user.full_name,
+                    "avatar_url": current_user.avatar_url
+                }
+            }
+        }
     )
     return msg
 
@@ -62,6 +130,16 @@ async def list_conversations(
 ):
     chat_service = ChatService(db)
     return await chat_service.list_conversations(current_user.id, limit=limit, offset=offset)
+
+@router.get("/conversations/unread-total")
+async def get_total_unread(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    chat_service = ChatService(db)
+    conversations = await chat_service.list_conversations(current_user.id, limit=100)
+    total = sum(c["unread_count"] for c in conversations)
+    return {"unread_total": total}
 
 @router.get("/conversations/{conversation_id}/messages", response_model=List[MessageResponse])
 async def get_messages(
@@ -101,8 +179,50 @@ async def websocket_chat(
 
     await manager.connect(conversation_id, websocket)
     try:
+        import json
         while True:
             data = await websocket.receive_text()
-            # Loop mantido aberto, aqui pode receber msgs enviadas via ws
+            try:
+                payload = json.loads(data)
+                
+                if payload.get("type") == "message":
+                    content = payload.get("content")
+                    if contains_contact_info(content):
+                        await websocket.send_json({
+                            "type": "error",
+                            "message": "Sua mensagem foi bloqueada pois contém informações de contato não permitidas pelas nossas políticas."
+                        })
+                        continue
+
+                    # Salva no DB
+                    msg_in = MessageCreate(content=content)
+                    msg = await chat_service.send_message(current_user.id, conversation_id, msg_in)
+                    
+                    # Broadcast
+                    await manager.broadcast_to_conversation(
+                        conversation_id,
+                        {
+                            "type": "new_message", 
+                            "data": {
+                                "id": str(msg.id), 
+                                "content": msg.content, 
+                                "sender_id": str(msg.sender_id),
+                                "created_at": msg.created_at.isoformat(),
+                                "sender": {
+                                    "id": str(current_user.id),
+                                    "full_name": current_user.full_name,
+                                    "avatar_url": current_user.avatar_url
+                                }
+                            }
+                        }
+                    )
+                
+                elif payload.get("type") == "typing":
+                    await manager.broadcast_to_conversation(
+                        conversation_id,
+                        {"type": "user_typing", "user_id": str(current_user.id)}
+                    )
+            except json.JSONDecodeError:
+                pass
     except WebSocketDisconnect:
         manager.disconnect(conversation_id, websocket)

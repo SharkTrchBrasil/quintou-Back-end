@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, Boolean, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Boolean, DateTime, ForeignKey, Text, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -16,6 +16,11 @@ class Conversation(Base):
     
     last_message_at = Column(DateTime(timezone=True), server_default=func.now())
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    last_message_preview = Column(Text, nullable=True)
+    host_unread_count = Column(Integer, default=0)
+    guest_unread_count = Column(Integer, default=0)
+    
     
     # Relacionamentos
     host = relationship("User", foreign_keys=[host_id])

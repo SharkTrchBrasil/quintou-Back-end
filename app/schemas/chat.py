@@ -11,12 +11,16 @@ class MessageBase(BaseSchema):
 class MessageCreate(MessageBase):
     pass
 
+class ConversationCreate(BaseSchema):
+    space_id: UUID
+
 class MessageResponse(MessageBase):
     id: UUID
     conversation_id: UUID
     sender_id: UUID
     is_read: bool
     created_at: datetime
+    sender: Optional[UserSummary] = None
 
 class ConversationResponse(BaseSchema):
     id: UUID
@@ -28,6 +32,8 @@ class ConversationResponse(BaseSchema):
     created_at: datetime
     
     # Detalhes opcionais
-    host: Optional[UserSummary] = None
-    guest: Optional[UserSummary] = None
+    space_title: Optional[str] = None
+    space_image: Optional[str] = None
+    last_message: Optional[str] = None
+    other_user: Optional[UserSummary] = None
     unread_count: int = 0

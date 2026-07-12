@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
     
+    FIREBASE_CREDENTIALS_PATH: str = "firebase-credentials.json"
+    
     # CPF Hub
     CPFHUB_API_KEY: str | None = None
     
