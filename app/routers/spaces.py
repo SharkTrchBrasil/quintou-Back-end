@@ -121,3 +121,24 @@ async def remove_space_image(
 ):
     space_service = SpaceService(db)
     await space_service.remove_image(space_id, current_host.id, image_id)
+
+@router.post("/{space_id}/view")
+async def increment_space_views(
+    space_id: UUID,
+    db: AsyncSession = Depends(get_db)
+):
+    """Incrementa o contador de views de um espaço."""
+    space_service = SpaceService(db)
+    return await space_service.increment_views(space_id)
+
+host_router = APIRouter(prefix="/host", tags=["Anfitrião"])
+
+@host_router.get("/dashboard")
+async def get_host_dashboard(
+    current_host: User = Depends(get_current_host),
+    db: AsyncSession = Depends(get_db)
+):
+    """Retorna dados agregados do dashboard do anfitrião."""
+    space_service = SpaceService(db)
+    return await space_service.get_host_dashboard(current_host.id)
+

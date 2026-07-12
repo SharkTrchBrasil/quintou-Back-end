@@ -172,6 +172,7 @@ class SpaceResponse(SpaceBase):
     is_highly_rebooked: bool
     average_rating: float
     total_reviews: int
+    total_views: int
     images: List[SpaceImageResponse]
     availability_rules: List[AvailabilityRuleResponse]
     pricing_tiers: List[SpacePricingTierResponse]

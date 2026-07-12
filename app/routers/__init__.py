@@ -5,6 +5,7 @@ def include_routers(app):
     app.include_router(auth.router)
     app.include_router(users.router)
     app.include_router(spaces.router)
+    app.include_router(spaces.host_router)
     app.include_router(bookings.router)
     app.include_router(reviews.router)
     app.include_router(payments.router)
@@ -15,3 +16,4 @@ def include_routers(app):
     app.include_router(reports.router)
     app.include_router(promotions.router)
     app.include_router(categories.router)
+

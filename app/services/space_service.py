@@ -217,3 +217,74 @@ class SpaceService:
             
         await self.db.delete(image)
         await self.db.commit()
+
+    async def increment_views(self, space_id: UUID):
+        query = select(Space).where(Space.id == space_id)
+        result = await self.db.execute(query)
+        space = result.scalars().first()
+        if not space:
+            raise HTTPException(status_code=404, detail=_("space_not_found"))
+        space.total_views = (space.total_views or 0) + 1
+        await self.db.commit()
+        return {"total_views": space.total_views}
+
+    async def get_host_dashboard(self, host_id: UUID) -> dict:
+        from app.models.booking import Booking, BookingStatus
+        from sqlalchemy import cast, Date
+        from datetime import datetime, timedelta
+
+        # Buscar todos os espaços do host
+        spaces_query = select(Space).where(Space.host_id == host_id, Space.is_active == True)
+        spaces_result = await self.db.execute(spaces_query)
+        spaces = list(spaces_result.scalars().all())
+        space_ids = [s.id for s in spaces]
+
+        total_views = sum(s.total_views or 0 for s in spaces)
+        total_listings = len(spaces)
+
+        if not space_ids:
+            return {
+                "total_revenue": 0.0,
+                "pending_bookings": 0,
+                "total_views": total_views,
+                "total_listings": total_listings,
+                "chart_data": [0.0] * 7,
+            }
+
+        # Receita total (bookings COMPLETED)
+        revenue_query = select(func.coalesce(func.sum(Booking.host_payout), 0)).where(
+            Booking.space_id.in_(space_ids),
+            Booking.status == BookingStatus.COMPLETED,
+        )
+        revenue_result = await self.db.execute(revenue_query)
+        total_revenue = float(revenue_result.scalar() or 0)
+
+        # Reservas pendentes
+        pending_query = select(func.count()).where(
+            Booking.space_id.in_(space_ids),
+            Booking.status == BookingStatus.PENDING,
+        )
+        pending_result = await self.db.execute(pending_query)
+        pending_bookings = pending_result.scalar() or 0
+
+        # Dados do gráfico: receita dos últimos 7 dias
+        today = datetime.utcnow().date()
+        chart_data = []
+        for i in range(6, -1, -1):
+            day = today - timedelta(days=i)
+            day_query = select(func.coalesce(func.sum(Booking.host_payout), 0)).where(
+                Booking.space_id.in_(space_ids),
+                Booking.status == BookingStatus.COMPLETED,
+                cast(Booking.created_at, Date) == day,
+            )
+            day_result = await self.db.execute(day_query)
+            chart_data.append(float(day_result.scalar() or 0))
+
+        return {
+            "total_revenue": total_revenue,
+            "pending_bookings": pending_bookings,
+            "total_views": total_views,
+            "total_listings": total_listings,
+            "chart_data": chart_data,
+        }
+
