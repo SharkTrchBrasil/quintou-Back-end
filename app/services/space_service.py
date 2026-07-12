@@ -77,7 +77,11 @@ class SpaceService:
     ) -> list[Space]:
         query = select(Space).options(
             selectinload(Space.images),
-            selectinload(Space.category)
+            selectinload(Space.category),
+            selectinload(Space.availability_rules),
+            selectinload(Space.pricing_tiers),
+            selectinload(Space.addons),
+            selectinload(Space.host)
         ).where(Space.is_active == True)
         
         if city:
@@ -166,7 +170,11 @@ class SpaceService:
     async def list_host_spaces(self, host_id: UUID, limit: int = 20, offset: int = 0) -> list[Space]:
         query = select(Space).options(
             selectinload(Space.images),
-            selectinload(Space.category)
+            selectinload(Space.category),
+            selectinload(Space.availability_rules),
+            selectinload(Space.pricing_tiers),
+            selectinload(Space.addons),
+            selectinload(Space.host)
         ).where(Space.host_id == host_id).limit(limit).offset(offset)
         result = await self.db.execute(query)
         return list(result.scalars().all())
