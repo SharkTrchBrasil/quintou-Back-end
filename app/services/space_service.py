@@ -144,7 +144,7 @@ class SpaceService:
                     func.sin(func.radians(Space.latitude))
                 )
             )
-            query = query.where(distance <= radius_km)
+            query = query.where((Space.latitude.is_(None)) | (distance <= radius_km))
             if sort_by is None:
                 query = query.order_by(distance)
         

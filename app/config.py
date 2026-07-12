@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     # CPF Hub
     CPFHUB_API_KEY: str | None = None
     
+    # Mapbox
+    MAPBOX_ACCESS_TOKEN: str | None = None
+    
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
         env_file=".env", 
         env_file_encoding="utf-8",

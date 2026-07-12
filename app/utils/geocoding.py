@@ -1,28 +1,34 @@
 import math
 import httpx
 from typing import Tuple, Optional
+from urllib.parse import quote
+from app.config import settings
 
 async def get_lat_lng_from_address(address: str) -> Optional[Tuple[float, float]]:
-    """Busca latitude e longitude de um endereço usando Nominatim (OpenStreetMap)."""
-    # Para produção, idealmente usar Google Maps API ou Mapbox
-    url = "https://nominatim.openstreetmap.org/search"
+    """Busca latitude e longitude de um endereço usando Mapbox API."""
+    if not settings.MAPBOX_ACCESS_TOKEN:
+        print("Warning: MAPBOX_ACCESS_TOKEN not set in environment")
+        return None
+
+    encoded_address = quote(address)
+    url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{encoded_address}.json"
     params = {
-        "q": address,
-        "format": "json",
+        "access_token": settings.MAPBOX_ACCESS_TOKEN,
         "limit": 1
-    }
-    headers = {
-        "User-Agent": "QuintouApp/1.0"
     }
     
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.get(url, params=params, headers=headers)
+            response = await client.get(url, params=params)
             response.raise_for_status()
             data = response.json()
-            if data:
-                return float(data[0]["lat"]), float(data[0]["lon"])
-    except Exception:
+            if data and "features" in data and len(data["features"]) > 0:
+                feature = data["features"][0]
+                # Mapbox returns [longitude, latitude]
+                lon, lat = feature["geometry"]["coordinates"]
+                return float(lat), float(lon)
+    except Exception as e:
+        print(f"Geocoding error: {e}")
         pass
     
     return None
