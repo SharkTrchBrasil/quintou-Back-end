@@ -11,6 +11,14 @@ class FavoriteService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    async def _load_favorite_with_space(self, favorite_id: UUID) -> Favorite:
+        """Load a favorite with its space and images eagerly loaded."""
+        query = select(Favorite).options(
+            selectinload(Favorite.space).selectinload(Space.images)
+        ).where(Favorite.id == favorite_id)
+        result = await self.db.execute(query)
+        return result.scalars().first()
+
     async def add_favorite(self, user_id: UUID, space_id: UUID) -> Favorite:
         # Check if space exists
         query_space = select(Space).where(Space.id == space_id)
@@ -25,18 +33,13 @@ class FavoriteService:
         existing = result_fav.scalars().first()
         
         if existing:
-            return existing
+            return await self._load_favorite_with_space(existing.id)
 
         favorite = Favorite(user_id=user_id, space_id=space_id)
         self.db.add(favorite)
         await self.db.commit()
         
-        # Load the space relationship to avoid MissingGreenlet errors during serialization
-        query_load = select(Favorite).options(
-            selectinload(Favorite.space).selectinload(Space.images)
-        ).where(Favorite.id == favorite.id)
-        result_load = await self.db.execute(query_load)
-        return result_load.scalars().first()
+        return await self._load_favorite_with_space(favorite.id)
 
     async def remove_favorite(self, user_id: UUID, space_id: UUID):
         query = select(Favorite).where(Favorite.user_id == user_id, Favorite.space_id == space_id)
