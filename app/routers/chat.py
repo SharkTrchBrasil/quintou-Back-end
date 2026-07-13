@@ -47,7 +47,7 @@ async def start_conversation(
     
     # Reload conversation via list_conversations to get formatted UI fields
     # Alternatively, we could manually format it here, but list_conversations does it perfectly
-    conversations = await chat_service.list_conversations(current_user.id, limit=1)
+    conversations = await chat_service.list_conversations(current_user.id, limit=100)
     for c in conversations:
         if c["id"] == conv.id:
             return c
