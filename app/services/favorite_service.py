@@ -14,7 +14,8 @@ class FavoriteService:
     async def _load_favorite_with_space(self, favorite_id: UUID) -> Favorite:
         """Load a favorite with its space and images eagerly loaded."""
         query = select(Favorite).options(
-            selectinload(Favorite.space).selectinload(Space.images)
+            selectinload(Favorite.space).selectinload(Space.images),
+            selectinload(Favorite.space).selectinload(Space.category)
         ).where(Favorite.id == favorite_id)
         result = await self.db.execute(query)
         return result.scalars().first()
@@ -52,7 +53,8 @@ class FavoriteService:
 
     async def list_user_favorites(self, user_id: UUID, limit: int = 20, offset: int = 0) -> list[Favorite]:
         query = select(Favorite).options(
-            selectinload(Favorite.space).selectinload(Space.images)
+            selectinload(Favorite.space).selectinload(Space.images),
+            selectinload(Favorite.space).selectinload(Space.category)
         ).where(Favorite.user_id == user_id).limit(limit).offset(offset)
         result = await self.db.execute(query)
         return list(result.scalars().all())
