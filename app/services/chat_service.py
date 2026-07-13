@@ -97,7 +97,7 @@ class ChatService:
 
     async def list_conversations(self, user_id: UUID, limit: int = 20, offset: int = 0) -> list[dict]:
         query = select(Conversation).options(
-            selectinload(Conversation.space),
+            selectinload(Conversation.space).selectinload(Space.images),
             selectinload(Conversation.host),
             selectinload(Conversation.guest)
         ).where(
