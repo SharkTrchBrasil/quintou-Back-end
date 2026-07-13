@@ -26,8 +26,7 @@ async def lookup_cpf(request: CpfLookupRequest):
         return CpfLookupResponse(is_valid=False, error_message="CPF inválido")
     
     if not settings.CPFHUB_API_KEY:
-        # Simulação se a chave não estiver configurada
-        return CpfLookupResponse(is_valid=True, real_name="Usuário Teste", birth_date="1990-05-15")
+        return CpfLookupResponse(is_valid=False, error_message="Serviço de validação de CPF indisponível. Contate o suporte.")
         
     try:
         async with httpx.AsyncClient() as client:
@@ -38,8 +37,20 @@ async def lookup_cpf(request: CpfLookupRequest):
             )
             if response.status_code == 200:
                 data = response.json()
-                return CpfLookupResponse(is_valid=True, real_name=data.get("nome", "Usuário Visitante"))
-            return CpfLookupResponse(is_valid=False, error_message="CPF não encontrado")
+                real_name = data.get("nome")
+                if not real_name or real_name.strip() == "":
+                    return CpfLookupResponse(is_valid=False, error_message="Não foi possível obter o nome vinculado a este CPF")
+                return CpfLookupResponse(
+                    is_valid=True,
+                    real_name=real_name.strip(),
+                    birth_date=data.get("data_nascimento"),
+                )
+            elif response.status_code == 404:
+                return CpfLookupResponse(is_valid=False, error_message="CPF não encontrado na base da Receita Federal")
+            else:
+                return CpfLookupResponse(is_valid=False, error_message="Erro ao consultar CPF. Tente novamente.")
+    except httpx.TimeoutException:
+        return CpfLookupResponse(is_valid=False, error_message="Tempo de resposta esgotado. Tente novamente.")
     except Exception:
         return CpfLookupResponse(is_valid=False, error_message="Falha na comunicação com o servidor de CPF")
 
