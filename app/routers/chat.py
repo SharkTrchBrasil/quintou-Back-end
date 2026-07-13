@@ -54,7 +54,7 @@ async def start_conversation(
             
     raise HTTPException(status_code=500, detail="Failed to format conversation")
 
-@router.post("/conversations/{booking_id}/messages", response_model=MessageResponse)
+@router.post("/conversations/booking/{booking_id}/messages", response_model=MessageResponse)
 async def send_message_booking(
     booking_id: UUID,
     msg_in: MessageCreate,
