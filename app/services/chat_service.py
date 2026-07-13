@@ -146,8 +146,7 @@ class ChatService:
             Message.conversation_id == conversation_id
         ).order_by(Message.created_at.desc()).limit(limit).offset(offset)
         result = await self.db.execute(query)
-        # Retorna na ordem cronológica
-        return list(reversed(result.scalars().all()))
+        return list(result.scalars().all())
 
     async def mark_as_read(self, user_id: UUID, conversation_id: UUID):
         conv = await self.db.get(Conversation, conversation_id)
