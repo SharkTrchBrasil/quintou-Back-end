@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
+from app.middleware.rate_limit import RateLimitMiddleware
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -21,6 +22,10 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Rate Limiting - 60 requests per minute per IP
+    # TODO: Em produção, usar Redis + slowapi ou similar para cluster multi-worker
+    app.add_middleware(RateLimitMiddleware, requests_per_minute=60)
 
     # Rota raiz/health
     @app.get("/", tags=["Health"])

@@ -35,6 +35,22 @@ class Settings(BaseSettings):
     # Mapbox
     MAPBOX_ACCESS_TOKEN: str | None = None
     
+    # Email Configuration
+    EMAIL_FROM: str = "noreply@quintou.com"
+    
+    # SendGrid (recomendado para produção)
+    SENDGRID_API_KEY: str | None = None
+    
+    # SMTP (alternativa)
+    SMTP_HOST: str | None = None
+    SMTP_PORT: int = 587
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: str | None = None
+    SMTP_TLS: bool = True
+    
+    # Frontend URL (para links de reset de senha)
+    FRONTEND_URL: str = "https://app.quintou.com"
+    
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
         env_file=".env", 
         env_file_encoding="utf-8",

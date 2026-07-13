@@ -1,11 +1,8 @@
 import stripe
 from app.config import settings
+from app.constants import PLATFORM_GUEST_FEE_PERCENTAGE, PLATFORM_HOST_FEE_PERCENTAGE
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
-
-# Quintou Fees
-HOST_FEE_PERCENTAGE = 0.15
-GUEST_FEE_PERCENTAGE = 0.10
 
 def create_connect_account(email: str, first_name: str, last_name: str, cpf: str) -> str:
     """
@@ -74,10 +71,10 @@ def create_booking_checkout_session(
     """
     
     # Hóspede paga = Valor Base + 10%
-    total_charged_to_guest = base_amount * (1 + GUEST_FEE_PERCENTAGE)
+    total_charged_to_guest = base_amount * (1 + float(PLATFORM_GUEST_FEE_PERCENTAGE))
     
     # Anfitrião recebe = Valor Base - 15%
-    host_earnings = base_amount * (1 - HOST_FEE_PERCENTAGE)
+    host_earnings = base_amount * (1 - float(PLATFORM_HOST_FEE_PERCENTAGE))
     
     # A plataforma (Quintou) retém a diferença entre o que o hóspede pagou e o que o anfitrião recebeu.
     # Ex: Base 100 -> Hóspede paga 110. Anfitrião recebe 85. Quintou retém 25.

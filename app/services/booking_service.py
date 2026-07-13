@@ -10,12 +10,26 @@ from app.models.space import Space, SpaceAddon, AddonPricingType, ListingType, L
 from app.models.promotion import SpacePromotion, PromotionType
 from app.schemas.booking import BookingCreate
 from app.utils.i18n import _
+from app.constants import PLATFORM_GUEST_FEE_PERCENTAGE, PLATFORM_HOST_FEE_PERCENTAGE
 
 class BookingService:
     def __init__(self, db: AsyncSession):
         self.db = db
         
-    async def check_availability(self, space_id: UUID, date_req: date, start_time: time, end_time: time) -> bool:
+    async def check_availability(self, space_id: UUID, date_req: date, start_time: time, end_time: time, lock: bool = False) -> bool:
+        """
+        Check if a space is available for the given date and time range.
+        
+        Args:
+            space_id: The space to check
+            date_req: The date to check
+            start_time: Start time of the booking
+            end_time: End time of the booking
+            lock: If True, uses SELECT FOR UPDATE to lock rows (prevents race conditions)
+        
+        Returns:
+            True if available, False if there's a conflict
+        """
         query = select(Booking).where(
             Booking.space_id == space_id,
             Booking.date == date_req,
@@ -23,6 +37,12 @@ class BookingService:
             Booking.start_time < end_time,
             Booking.end_time > start_time
         )
+        
+        if lock:
+            # Apply SELECT FOR UPDATE to lock conflicting bookings
+            # This prevents race conditions during booking creation
+            query = query.with_for_update()
+        
         result = await self.db.execute(query)
         conflict = result.scalars().first()
         return not bool(conflict)
@@ -36,24 +56,34 @@ class BookingService:
         return int(diff.total_seconds() // 3600) + (1 if diff.total_seconds() % 3600 > 0 else 0)
 
     async def create(self, guest_id: UUID, booking_in: BookingCreate) -> Booking:
-        # Load space with pricing tiers and promotions
-        query = select(Space).options(
-            selectinload(Space.pricing_tiers),
-            selectinload(Space.promotions)
-        ).where(Space.id == booking_in.space_id)
-        result = await self.db.execute(query)
-        space = result.scalars().first()
-        
-        if not space:
-            raise HTTPException(status_code=404, detail=_("space_not_found"))
+        # Start an explicit transaction to ensure atomicity
+        async with self.db.begin_nested():
+            # Load space with pricing tiers and promotions
+            query = select(Space).options(
+                selectinload(Space.pricing_tiers),
+                selectinload(Space.promotions)
+            ).where(Space.id == booking_in.space_id)
+            result = await self.db.execute(query)
+            space = result.scalars().first()
             
-        if space.host_id == guest_id:
-            raise HTTPException(status_code=400, detail="Host cannot book own space.")
+            if not space:
+                raise HTTPException(status_code=404, detail=_("space_not_found"))
+                
+            if space.host_id == guest_id:
+                raise HTTPException(status_code=400, detail="Host cannot book own space.")
             
-        if not await self.check_availability(space.id, booking_in.date, booking_in.start_time, booking_in.end_time):
-            raise HTTPException(status_code=400, detail=_("booking_conflict"))
+            # Check availability with pessimistic lock to prevent race conditions
+            # This locks any conflicting bookings until our transaction commits
+            if not await self.check_availability(
+                space.id, 
+                booking_in.date, 
+                booking_in.start_time, 
+                booking_in.end_time,
+                lock=True  # Enable SELECT FOR UPDATE
+            ):
+                raise HTTPException(status_code=409, detail=_("booking_conflict"))
             
-        hours = self.calculate_hours(booking_in.start_time, booking_in.end_time)
+            hours = self.calculate_hours(booking_in.start_time, booking_in.end_time)
         
         if hours < space.min_hours or hours > space.max_hours:
             raise HTTPException(status_code=400, detail=f"Booking must be between {space.min_hours} and {space.max_hours} hours.")
@@ -157,8 +187,10 @@ class BookingService:
         if space.listing_type == ListingType.EQUIPMENT and space.delivery_available and booking_in.delivery_address:
             delivery_fee = space.delivery_fee or Decimal('0.00')
 
-        service_fee = (subtotal_after_discount + addons_total) * Decimal('0.15') # 15% taxa do guest
-        host_fee = (subtotal_after_discount + addons_total) * Decimal('0.10')    # 10% taxa do host
+        # Taxas da plataforma (usando constantes padronizadas)
+        service_fee = (subtotal_after_discount + addons_total) * PLATFORM_GUEST_FEE_PERCENTAGE  # 10% taxa do guest
+        host_fee = (subtotal_after_discount + addons_total) * PLATFORM_HOST_FEE_PERCENTAGE      # 15% taxa do host
+        
         total_price = subtotal_after_discount + addons_total + delivery_fee + service_fee
         host_payout = subtotal_after_discount + addons_total + delivery_fee - host_fee
         

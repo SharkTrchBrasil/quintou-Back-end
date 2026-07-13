@@ -63,7 +63,61 @@ class ReviewService:
         await self.db.commit()
         await self.db.refresh(db_review)
         
-        # TODO: Atualizar average_rating assincronamente (em background task)
+        # Atualizar average_rating e total_reviews do usuário avaliado
+        from sqlalchemy import func
+        
+        if review_type == ReviewType.GUEST_TO_HOST:
+            # Hóspede avaliando anfitrião
+            host = await self.db.get(User, reviewee_id)
+            if host:
+                # Calcula média e total de reviews do host
+                reviews_stats = await self.db.execute(
+                    select(
+                        func.count(Review.id).label('count'),
+                        func.avg(Review.rating).label('avg')
+                    ).where(
+                        Review.reviewee_id == reviewee_id,
+                        Review.type == ReviewType.GUEST_TO_HOST
+                    )
+                )
+                stats = reviews_stats.first()
+                host.total_reviews = stats.count or 0
+                host.average_rating = float(stats.avg or 0.0)
+                
+                # Atualizar rating do espaço também
+                space_stats = await self.db.execute(
+                    select(
+                        func.count(Review.id).label('count'),
+                        func.avg(Review.rating).label('avg')
+                    ).where(
+                        Review.space_id == booking.space_id,
+                        Review.type == ReviewType.GUEST_TO_HOST
+                    )
+                )
+                space_stat = space_stats.first()
+                if booking.space:
+                    booking.space.total_reviews = space_stat.count or 0
+                    booking.space.average_rating = float(space_stat.avg or 0.0)
+                    
+        elif review_type == ReviewType.HOST_TO_GUEST:
+            # Anfitrião avaliando hóspede
+            guest = await self.db.get(User, reviewee_id)
+            if guest:
+                # Calcula média e total de reviews do guest
+                reviews_stats = await self.db.execute(
+                    select(
+                        func.count(Review.id).label('count'),
+                        func.avg(Review.rating).label('avg')
+                    ).where(
+                        Review.reviewee_id == reviewee_id,
+                        Review.type == ReviewType.HOST_TO_GUEST
+                    )
+                )
+                stats = reviews_stats.first()
+                guest.total_reviews = stats.count or 0
+                guest.average_rating = float(stats.avg or 0.0)
+        
+        await self.db.commit()
         
         return db_review
 
