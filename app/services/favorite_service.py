@@ -30,8 +30,13 @@ class FavoriteService:
         favorite = Favorite(user_id=user_id, space_id=space_id)
         self.db.add(favorite)
         await self.db.commit()
-        await self.db.refresh(favorite)
-        return favorite
+        
+        # Load the space relationship to avoid MissingGreenlet errors during serialization
+        query_load = select(Favorite).options(
+            selectinload(Favorite.space).selectinload(Space.images)
+        ).where(Favorite.id == favorite.id)
+        result_load = await self.db.execute(query_load)
+        return result_load.scalars().first()
 
     async def remove_favorite(self, user_id: UUID, space_id: UUID):
         query = select(Favorite).where(Favorite.user_id == user_id, Favorite.space_id == space_id)
