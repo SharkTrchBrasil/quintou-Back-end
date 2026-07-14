@@ -18,7 +18,7 @@ async def test_live_api():
             print(f"Healthcheck failed: {e}")
             
         # 2. Register a new user
-        test_email = "livetest2_user@example.com"
+        test_email = "livetest3_user@example.com"
         print(f"\n2. Testing User Registration ({test_email})...")
         user_data = {
             "email": test_email,
