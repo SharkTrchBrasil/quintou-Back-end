@@ -78,7 +78,6 @@ async def send_message(
     chat_service = ChatService(db)
     msg = await chat_service.send_message(current_user.id, conversation_id, msg_in)
     
-    conv = await chat_service.db.get(chat_service.db.bind.mapper.class_manager.class_, conversation_id) # Need to fetch conv for participants. Actually chat_service.db.get(Conversation, conversation_id)
     from app.models.chat import Conversation
     conv = await chat_service.db.get(Conversation, conversation_id)
     if conv:

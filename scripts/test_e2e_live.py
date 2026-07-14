@@ -3,7 +3,7 @@ import asyncio
 import json
 from datetime import datetime, timedelta, timezone
 
-API_URL = "http://localhost:8000"
+API_URL = "https://ifo1usk4zzs6kf3w1axrg1y9.207.180.251.156.sslip.io"
 
 USER_A_EMAIL = "csatrabalho1@gmail.com"
 USER_B_EMAIL = "csatrabalho3@gmail.com"
@@ -81,7 +81,7 @@ async def run_e2e():
             print(f"Failed to create space: {r.text}")
             return
             
-        space_id = r.json().get("data", {}).get("id")
+        space_id = r.json().get("id")
         print(f"Space created successfully with ID: {space_id}")
         
         # 5. User B favorites the space
@@ -91,11 +91,11 @@ async def run_e2e():
         
         # 6. User B starts a chat with User A
         print("\n6. User B starts Chat...")
-        r = await client.post("/conversations", json={"space_id": space_id}, headers=headers_b)
+        r = await client.post("/conversations", json={"spaceId": space_id}, headers=headers_b)
         if r.status_code not in (200, 201):
             print(f"Failed to start chat: {r.text}")
             return
-        conv_id = r.json().get("data", {}).get("id")
+        conv_id = r.json().get("id")
         print(f"Conversation created/fetched: {conv_id}")
         
         # 7. User B sends message
@@ -110,10 +110,10 @@ async def run_e2e():
         end_time = start_time + timedelta(hours=3)
         
         booking_data = {
-            "space_id": space_id,
-            "start_time": start_time.isoformat(),
-            "end_time": end_time.isoformat(),
-            "guest_count": 5,
+            "spaceId": space_id,
+            "startTime": start_time.isoformat(),
+            "endTime": end_time.isoformat(),
+            "guestCount": 5,
             "message": "Can't wait to test this space!"
         }
         
@@ -122,13 +122,15 @@ async def run_e2e():
             print(f"Failed to create booking: {r.text}")
             return
             
-        booking_id = r.json().get("data", {}).get("id")
+        booking_id = r.json().get("id")
         print(f"Booking created with ID: {booking_id}")
         
         # 9. User A checks host bookings
         print("\n9. User A lists Host Bookings...")
         r = await client.get("/bookings/host", headers=headers_a)
-        bookings = r.json().get("data", [])
+        bookings = r.json()
+        if isinstance(bookings, dict) and "data" in bookings:
+            bookings = bookings["data"]
         found = any(b["id"] == booking_id for b in bookings)
         print(f"Booking found in host list: {found}")
         
