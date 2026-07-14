@@ -3,7 +3,6 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from asgi_correlation_id import CorrelationIdMiddleware
 import redis.asyncio as redis
-from fastapi_limiter import FastAPILimiter
 from app.config import settings
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
@@ -16,7 +15,6 @@ import contextlib
 async def lifespan(app: FastAPI):
     # Inicializar Redis para rate limiter
     redis_connection = redis.from_url(settings.REDIS_URL, encoding="utf-8", decode_responses=True)
-    await FastAPILimiter.init(redis_connection)
     FastAPICache.init(RedisBackend(redis_connection), prefix="fastapi-cache")
     
     yield
