@@ -153,17 +153,28 @@ async def handle_chat_message(
     conversation = result.scalar_one_or_none()
     
     if conversation:
+        # Busca o sender para enriquecer o payload
+        sender_result = await db.execute(
+            select(User).where(User.id == sender_id)
+        )
+        sender = sender_result.scalar_one_or_none()
+        
         # Prepara payload para enviar
         message_payload = {
             "type": "new_message",
-            "message": {
+            "data": {
                 "id": str(message.id),
                 "conversation_id": str(conversation_id),
                 "sender_id": str(sender_id),
                 "content": content,
                 "media_url": media_url,
                 "created_at": message.created_at.isoformat(),
-                "is_read": False
+                "is_read": False,
+                "sender": {
+                    "id": str(sender.id),
+                    "full_name": sender.full_name,
+                    "avatar_url": sender.avatar_url
+                } if sender else None
             }
         }
         
@@ -179,12 +190,6 @@ async def handle_chat_message(
         
         for user_id in participant_ids:
             if user_id != sender_id and not manager.is_user_online(user_id):
-                # Busca usuário para nome do remetente
-                sender_result = await db.execute(
-                    select(User).where(User.id == sender_id)
-                )
-                sender = sender_result.scalar_one_or_none()
-                
                 if sender:
                     try:
                         await notification_service.create_notification(
