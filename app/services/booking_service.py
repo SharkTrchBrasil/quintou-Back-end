@@ -346,15 +346,27 @@ class BookingService:
             self.db.add(ba)
             
         await self.db.commit()
-        await self.db.refresh(db_booking)
         
-        return db_booking
+        # Reload with eager loading to avoid MissingGreenlet
+        return await self._get_with_relations(db_booking.id)
         
+    async def _get_with_relations(self, booking_id: UUID) -> Booking:
+        """Internal helper to load a booking with all relations eagerly."""
+        query = select(Booking).options(
+            selectinload(Booking.space).selectinload(Space.images),
+            selectinload(Booking.space).selectinload(Space.category),
+            selectinload(Booking.guest),
+            selectinload(Booking.addons)
+        ).where(Booking.id == booking_id)
+        result = await self.db.execute(query)
+        return result.scalars().first()
+
     async def get(self, booking_id: UUID, user_id: UUID) -> Booking:
         query = select(Booking).options(
-            selectinload(Booking.space),
+            selectinload(Booking.space).selectinload(Space.images),
+            selectinload(Booking.space).selectinload(Space.category),
             selectinload(Booking.guest),
-            selectinload(Booking.addons).selectinload(BookingAddon.addon)
+            selectinload(Booking.addons)
         ).where(Booking.id == booking_id)
         result = await self.db.execute(query)
         booking = result.scalars().first()
@@ -369,15 +381,20 @@ class BookingService:
 
     async def list_guest_bookings(self, guest_id: UUID, limit: int = 20, offset: int = 0):
         query = select(Booking).options(
-            selectinload(Booking.space).selectinload(Space.images)
+            selectinload(Booking.space).selectinload(Space.images),
+            selectinload(Booking.space).selectinload(Space.category),
+            selectinload(Booking.guest),
+            selectinload(Booking.addons)
         ).where(Booking.guest_id == guest_id).order_by(Booking.created_at.desc()).limit(limit).offset(offset)
         result = await self.db.execute(query)
         return result.scalars().all()
 
     async def list_host_bookings(self, host_id: UUID, limit: int = 20, offset: int = 0):
         query = select(Booking).join(Space).options(
-            selectinload(Booking.space),
-            selectinload(Booking.guest)
+            selectinload(Booking.space).selectinload(Space.images),
+            selectinload(Booking.space).selectinload(Space.category),
+            selectinload(Booking.guest),
+            selectinload(Booking.addons)
         ).where(Space.host_id == host_id).order_by(Booking.created_at.desc()).limit(limit).offset(offset)
         result = await self.db.execute(query)
         return result.scalars().all()
