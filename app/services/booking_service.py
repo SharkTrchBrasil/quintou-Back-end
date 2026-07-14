@@ -357,7 +357,7 @@ class BookingService:
             selectinload(Booking.space).selectinload(Space.category),
             selectinload(Booking.guest),
             selectinload(Booking.addons)
-        ).where(Booking.id == booking_id)
+        ).where(Booking.id == booking_id).execution_options(populate_existing=True)
         result = await self.db.execute(query)
         return result.scalars().first()
 
@@ -367,7 +367,7 @@ class BookingService:
             selectinload(Booking.space).selectinload(Space.category),
             selectinload(Booking.guest),
             selectinload(Booking.addons)
-        ).where(Booking.id == booking_id)
+        ).where(Booking.id == booking_id).execution_options(populate_existing=True)
         result = await self.db.execute(query)
         booking = result.scalars().first()
         
@@ -385,7 +385,7 @@ class BookingService:
             selectinload(Booking.space).selectinload(Space.category),
             selectinload(Booking.guest),
             selectinload(Booking.addons)
-        ).where(Booking.guest_id == guest_id).order_by(Booking.created_at.desc()).limit(limit).offset(offset)
+        ).where(Booking.guest_id == guest_id).order_by(Booking.created_at.desc()).limit(limit).offset(offset).execution_options(populate_existing=True)
         result = await self.db.execute(query)
         return result.scalars().all()
 
@@ -395,7 +395,7 @@ class BookingService:
             selectinload(Booking.space).selectinload(Space.category),
             selectinload(Booking.guest),
             selectinload(Booking.addons)
-        ).where(Space.host_id == host_id).order_by(Booking.created_at.desc()).limit(limit).offset(offset)
+        ).where(Space.host_id == host_id).order_by(Booking.created_at.desc()).limit(limit).offset(offset).execution_options(populate_existing=True)
         result = await self.db.execute(query)
         return result.scalars().all()
 
@@ -490,5 +490,4 @@ class BookingService:
             
         booking.status = new_status
         await self.db.commit()
-        await self.db.refresh(booking)
-        return booking
+        return await self._get_with_relations(booking.id)
