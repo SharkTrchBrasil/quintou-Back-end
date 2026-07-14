@@ -14,6 +14,7 @@ import contextlib
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
     from app.database import engine, Base
+    from app.models import user, space, booking, review, chat, payment, promotion, favorite, report, notification, wallet
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         
