@@ -1,9 +1,10 @@
-from pydantic import BaseModel, Field
+from pydantic import Field
 from typing import Optional
 from uuid import UUID
 from datetime import datetime
+from app.schemas.common import BaseSchema
 
-class ReviewBase(BaseModel):
+class ReviewBase(BaseSchema):
     rating: int = Field(..., ge=1, le=5)
     comment: Optional[str] = None
     event_type: Optional[str] = None
