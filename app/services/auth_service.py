@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from fastapi import HTTPException, status
 from datetime import datetime, timezone
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.user import UserCreate, UserLogin, Token
 from app.utils.security import verify_password, get_password_hash, create_access_token, create_refresh_token
 from app.schemas.auth import RefreshTokenRequest, ForgotPasswordRequest, ResetPasswordRequest, AcceptTermsRequest
@@ -116,7 +116,8 @@ class AuthService:
             phone=user_in.phone,
             cpf=user_in.cpf,
             is_host=user_in.is_host,
-            last_device_id=user_in.device_id
+            last_device_id=user_in.device_id,
+            role=UserRole.USER
         )
         self.db.add(db_user)
         await self.db.flush()
