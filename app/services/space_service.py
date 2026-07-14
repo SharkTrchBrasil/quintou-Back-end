@@ -20,7 +20,10 @@ class SpaceService:
             selectinload(Space.pricing_tiers),
             selectinload(Space.addons),
             selectinload(Space.category),
-            selectinload(Space.host)
+            selectinload(Space.host),
+            selectinload(Space.blocked_dates),
+            selectinload(Space.availability_exceptions),
+            selectinload(Space.custom_pricing)
         ).where(Space.id == space_id)
         
         result = await self.db.execute(query)
@@ -82,7 +85,10 @@ class SpaceService:
             selectinload(Space.availability_rules),
             selectinload(Space.pricing_tiers),
             selectinload(Space.addons),
-            selectinload(Space.host)
+            selectinload(Space.host),
+            selectinload(Space.blocked_dates),
+            selectinload(Space.availability_exceptions),
+            selectinload(Space.custom_pricing)
         ).where(Space.is_active == True, Space.is_approved == True)
         
         if city:
@@ -189,7 +195,10 @@ class SpaceService:
             selectinload(Space.availability_rules),
             selectinload(Space.pricing_tiers),
             selectinload(Space.addons),
-            selectinload(Space.host)
+            selectinload(Space.host),
+            selectinload(Space.blocked_dates),
+            selectinload(Space.availability_exceptions),
+            selectinload(Space.custom_pricing)
         ).where(Space.host_id == host_id).limit(limit).offset(offset)
         result = await self.db.execute(query)
         return list(result.scalars().all())

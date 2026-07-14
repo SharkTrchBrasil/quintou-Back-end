@@ -24,7 +24,7 @@ async def test_live_api():
             "email": test_email,
             "password": "Password123!",
             "full_name": "Live Test User",
-            "cpf": "12345678900",
+            "cpf": "47490116066",
             "phone": "+5511999999999"
         }
         
@@ -35,25 +35,25 @@ async def test_live_api():
             # 3. Login
             print("\n3. Testing Login...")
             login_data = {
-                "username": test_email,
+                "email": test_email,
                 "password": "Password123!"
             }
-            login_resp = await client.post("/auth/login", data=login_data)
+            login_resp = await client.post("/auth/login", json=login_data)
             if login_resp.status_code == 200:
                 print("Login Successful!")
-                token = login_resp.json()["access_token"]
+                token = login_resp.json().get("accessToken") or login_resp.json().get("data", {}).get("access_token")
             else:
                 print(f"Login failed: {login_resp.status_code} {login_resp.text}")
-        elif resp.status_code == 400 and "Email already registered" in resp.text:
+        elif resp.status_code == 400 and "Email" in resp.text:
             print("User already exists, trying to login...")
             login_data = {
-                "username": test_email,
+                "email": test_email,
                 "password": "Password123!"
             }
-            login_resp = await client.post("/auth/login", data=login_data)
+            login_resp = await client.post("/auth/login", json=login_data)
             if login_resp.status_code == 200:
                 print("Login Successful!")
-                token = login_resp.json()["access_token"]
+                token = login_resp.json().get("accessToken") or login_resp.json().get("data", {}).get("access_token")
         else:
             print(f"Registration failed: {resp.status_code} {resp.text}")
             try:
