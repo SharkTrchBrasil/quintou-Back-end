@@ -13,6 +13,10 @@ import contextlib
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
+    from app.database import engine, Base
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+        
     # Inicializar Redis para rate limiter
     redis_connection = redis.from_url(settings.REDIS_URL, encoding="utf-8", decode_responses=True)
     FastAPICache.init(RedisBackend(redis_connection), prefix="fastapi-cache")
