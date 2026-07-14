@@ -2,11 +2,15 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.schemas.user import UserCreate, UserLogin, UserResponse, Token
-from app.schemas.auth import RefreshTokenRequest, ForgotPasswordRequest, ResetPasswordRequest
+from app.schemas.auth import RefreshTokenRequest, ForgotPasswordRequest, ResetPasswordRequest, AcceptTermsRequest
 from app.services.auth_service import AuthService
+from app.dependencies import get_current_user
+
+
 from pydantic import BaseModel
 import httpx
 from app.config import settings
+from fastapi_limiter.depends import RateLimiter
 
 class CpfLookupRequest(BaseModel):
     cpf: str
@@ -19,7 +23,7 @@ class CpfLookupResponse(BaseModel):
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
-@router.post("/lookup-cpf", response_model=CpfLookupResponse)
+@router.post("/lookup-cpf", response_model=CpfLookupResponse, dependencies=[Depends(RateLimiter(times=10, seconds=60))])
 async def lookup_cpf(request: CpfLookupRequest):
     cpf_clean = ''.join(filter(str.isdigit, request.cpf))
     if len(cpf_clean) != 11:
@@ -54,27 +58,32 @@ async def lookup_cpf(request: CpfLookupRequest):
     except Exception:
         return CpfLookupResponse(is_valid=False, error_message="Falha na comunicação com o servidor de CPF")
 
-@router.post("/register", response_model=UserResponse, status_code=201)
+@router.post("/register", response_model=UserResponse, status_code=201, dependencies=[Depends(RateLimiter(times=5, seconds=300))])
 async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     auth_service = AuthService(db)
     return await auth_service.register(user_in)
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=Token, dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 async def login(user_in: UserLogin, db: AsyncSession = Depends(get_db)):
     auth_service = AuthService(db)
     return await auth_service.authenticate(user_in)
 
-@router.post("/refresh", response_model=Token)
+@router.post("/refresh", response_model=Token, dependencies=[Depends(RateLimiter(times=10, seconds=60))])
 async def refresh_token(refresh_in: RefreshTokenRequest, db: AsyncSession = Depends(get_db)):
     auth_service = AuthService(db)
     return await auth_service.refresh_token(refresh_in)
 
-@router.post("/forgot-password")
+@router.post("/forgot-password", dependencies=[Depends(RateLimiter(times=3, seconds=300))])
 async def forgot_password(forgot_in: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
     auth_service = AuthService(db)
     return await auth_service.forgot_password(forgot_in)
 
-@router.post("/reset-password")
+@router.post("/reset-password", dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 async def reset_password(reset_in: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
     auth_service = AuthService(db)
     return await auth_service.reset_password(reset_in)
+
+@router.post("/accept-terms", dependencies=[Depends(RateLimiter(times=5, seconds=60))])
+async def accept_terms(accept_in: AcceptTermsRequest, db: AsyncSession = Depends(get_db), current_user: UserResponse = Depends(get_current_user)):
+    auth_service = AuthService(db)
+    return await auth_service.accept_terms(str(current_user.id), accept_in)

@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'add_password_reset'
-down_revision = '99e2d648c27b_initial_migration'
+down_revision = '99e2d648c27b'
 branch_labels = None
 depends_on = None
 
@@ -32,20 +32,9 @@ def upgrade() -> None:
     op.create_index('ix_password_reset_tokens_token', 'password_reset_tokens', ['token'], unique=True)
     op.create_index('ix_password_reset_tokens_user_id', 'password_reset_tokens', ['user_id'])
     
-    # Adicionar campo fcm_token na tabela users (caso não exista)
-    # Este campo é necessário para notificações push
-    try:
-        op.add_column('users', sa.Column('fcm_token', sa.String(), nullable=True))
-    except Exception as e:
-        # Campo já existe, ignora
-        pass
-    
-    # Adicionar stripe_account_status na tabela users (caso não exista)
-    try:
-        op.add_column('users', sa.Column('stripe_account_status', sa.String(), server_default='pending'))
-    except Exception as e:
-        # Campo já existe, ignora
-        pass
+    # We skip adding columns here since it's breaking transaction
+    # We will rely on autogenerate for new columns
+
 
 
 def downgrade() -> None:

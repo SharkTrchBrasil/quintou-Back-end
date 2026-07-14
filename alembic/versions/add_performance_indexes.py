@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'add_performance_indexes'
-down_revision = 'add_password_reset_tokens'
+down_revision = 'add_password_reset'
 branch_labels = None
 depends_on = None
 

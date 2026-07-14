@@ -43,6 +43,12 @@ async def get_current_host(current_user: Annotated[User, Depends(get_current_use
         raise HTTPException(status_code=403, detail="The user doesn't have enough privileges")
     return current_user
 
+async def get_current_admin(current_user: Annotated[User, Depends(get_current_user)]) -> User:
+    from app.models.user import UserRole
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="The user doesn't have enough privileges (Admin required)")
+    return current_user
+
 async def get_current_user_ws(
     token: str = Query(...),
     db: AsyncSession = Depends(get_db)

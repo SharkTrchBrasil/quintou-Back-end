@@ -50,6 +50,8 @@ class Space(Base):
     pricing_mode = Column(Enum(ListingPricingMode), default=ListingPricingMode.PER_HOUR, nullable=False)
     price = Column(Numeric(10, 2), nullable=False) # Valor base (por hora, por dia, ou fixo)
     price_per_hour = Column(Numeric(10, 2), nullable=True) # Mantido para compatibilidade
+    price_per_hour_weekend = Column(Numeric(10, 2), nullable=True) # Preço diferenciado p/ fds
+    price_per_hour_holiday = Column(Numeric(10, 2), nullable=True) # Preço diferenciado p/ feriados
     weekday_discount_percent = Column(Integer, default=0)
     
     # Entrega (para EQUIPMENT)
@@ -86,6 +88,7 @@ class Space(Base):
     # Políticas e Limites
     min_hours = Column(Integer, default=2)
     max_hours = Column(Integer, default=12)
+    buffer_minutes = Column(Integer, default=0) # Tempo de limpeza/preparação entre reservas
     max_guests = Column(Integer, nullable=False)
     allows_pets = Column(Boolean, default=False)
     pet_rules = Column(Text, nullable=True)
@@ -142,6 +145,9 @@ class Space(Base):
     pricing_tiers = relationship("SpacePricingTier", back_populates="space", cascade="all, delete-orphan", order_by="SpacePricingTier.min_guests")
     addons = relationship("SpaceAddon", back_populates="space", cascade="all, delete-orphan")
     promotions = relationship("SpacePromotion", back_populates="space", cascade="all, delete-orphan")
+    blocked_dates = relationship("BlockedDate", back_populates="space", cascade="all, delete-orphan")
+    availability_exceptions = relationship("AvailabilityException", back_populates="space", cascade="all, delete-orphan")
+    custom_pricing = relationship("CustomPricing", back_populates="space", cascade="all, delete-orphan")
 
 class SpacePricingTier(Base):
     __tablename__ = "space_pricing_tiers"
@@ -193,3 +199,36 @@ class AvailabilityRule(Base):
     price_override = Column(Numeric(10, 2), nullable=True) # Ex: Preço fds
     
     space = relationship("Space", back_populates="availability_rules")
+
+class BlockedDate(Base):
+    __tablename__ = "blocked_dates"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    space_id = Column(UUID(as_uuid=True), ForeignKey("spaces.id"), nullable=False)
+    date = Column(String, nullable=False, index=True) # Formato "YYYY-MM-DD"
+    reason = Column(String, nullable=True)
+    
+    space = relationship("Space", back_populates="blocked_dates")
+
+class AvailabilityException(Base):
+    __tablename__ = "availability_exceptions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    space_id = Column(UUID(as_uuid=True), ForeignKey("spaces.id"), nullable=False)
+    date = Column(String, nullable=False, index=True) # Formato "YYYY-MM-DD"
+    start_time = Column(String, nullable=False) # Ex: "08:00"
+    end_time = Column(String, nullable=False)   # Ex: "22:00"
+    is_available = Column(Boolean, default=True)
+    reason = Column(String, nullable=True)
+    
+    space = relationship("Space", back_populates="availability_exceptions")
+
+class CustomPricing(Base):
+    __tablename__ = "custom_pricing"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    space_id = Column(UUID(as_uuid=True), ForeignKey("spaces.id"), nullable=False)
+    date = Column(String, nullable=False, index=True) # Formato "YYYY-MM-DD"
+    price_per_hour = Column(Numeric(10, 2), nullable=False)
+    
+    space = relationship("Space", back_populates="custom_pricing")

@@ -13,7 +13,7 @@ load_dotenv()
 
 from app.database import Base
 # Import all models here so Alembic can discover them
-from app.models import user, space, booking, review, chat, payment, promotion, favorite, report, notification
+from app.models import user, space, booking, review, chat, payment, promotion, favorite, report, notification, wallet
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

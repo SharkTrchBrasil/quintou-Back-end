@@ -1,24 +1,46 @@
-from typing import Optional
+"""
+Payment schemas
+"""
+from pydantic import BaseModel, Field
 from uuid import UUID
-from datetime import datetime
-from pydantic import BaseModel
 from decimal import Decimal
-from app.schemas.common import BaseSchema
-from app.models.payment import PaymentStatus
+from datetime import datetime
+from typing import Optional
 
-class PaymentIntentCreate(BaseSchema):
+
+class PaymentIntentCreate(BaseModel):
+    """Request para criar PaymentIntent"""
     booking_id: UUID
 
-class PaymentIntentResponse(BaseSchema):
+
+class PaymentIntentResponse(BaseModel):
+    """Response com client_secret do Stripe"""
     client_secret: str
     amount: Decimal
-    currency: str
+    currency: str = "brl"
 
-class PaymentResponse(BaseSchema):
+
+class PaymentResponse(BaseModel):
+    """Payment completo"""
     id: UUID
     booking_id: UUID
     payer_id: UUID
     amount: Decimal
-    status: PaymentStatus
+    platform_fee: Decimal
+    host_amount: Decimal
+    currency: str
+    status: str
+    stripe_payment_intent_id: Optional[str] = None
+    stripe_transfer_id: Optional[str] = None
     paid_at: Optional[datetime] = None
+    refunded_at: Optional[datetime] = None
     created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class WebhookEvent(BaseModel):
+    """Stripe webhook event"""
+    type: str
+    data: dict

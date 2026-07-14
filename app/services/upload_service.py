@@ -40,16 +40,29 @@ class UploadService:
         if allowed_types is None:
             allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 
+        # Valida content_type
         if file.content_type not in allowed_types:
             logger.error(f"File type {file.content_type} not allowed")
-            return None
+            raise ValueError(f"Tipo de arquivo não permitido. Permitidos: {', '.join(allowed_types)}")
 
+        # Lê o conteúdo do arquivo
         contents = await file.read()
-        if len(contents) > max_size_mb * 1024 * 1024:
-            logger.error(f"File too large: {len(contents)} bytes")
-            return None
+        file_size_mb = len(contents) / (1024 * 1024)
+        
+        # Valida tamanho
+        if file_size_mb > max_size_mb:
+            logger.error(f"File too large: {file_size_mb:.2f}MB (max: {max_size_mb}MB)")
+            raise ValueError(f"Arquivo muito grande: {file_size_mb:.2f}MB. Máximo: {max_size_mb}MB")
+
+        # Valida nome do arquivo
+        if not file.filename:
+            raise ValueError("Nome do arquivo é obrigatório")
 
         ext = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
+        
+        # Sanitiza extensão
+        ext = ext.lower()[:10]  # Previne extensões maliciosas
+        
         file_key = f"{folder}/{uuid.uuid4()}.{ext}"
 
         try:

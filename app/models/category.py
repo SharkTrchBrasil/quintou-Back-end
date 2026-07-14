@@ -13,6 +13,7 @@ class Category(Base):
     slug = Column(String, unique=True, nullable=False)
     icon = Column(String, nullable=False)
     listing_type = Column(Enum(ListingType), default=ListingType.SPACE, nullable=False)
+    requires_address_proof = Column(Boolean, default=False)
     order = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
     

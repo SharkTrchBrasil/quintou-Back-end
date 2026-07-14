@@ -33,6 +33,39 @@ class SpacePricingTierCreate(SpacePricingTierBase):
 class SpacePricingTierResponse(SpacePricingTierBase):
     id: UUID
 
+class BlockedDateBase(BaseSchema):
+    date: str
+    reason: Optional[str] = None
+
+class BlockedDateCreate(BlockedDateBase):
+    pass
+
+class BlockedDateResponse(BlockedDateBase):
+    id: UUID
+
+class AvailabilityExceptionBase(BaseSchema):
+    date: str
+    start_time: str
+    end_time: str
+    is_available: bool = True
+    reason: Optional[str] = None
+
+class AvailabilityExceptionCreate(AvailabilityExceptionBase):
+    pass
+
+class AvailabilityExceptionResponse(AvailabilityExceptionBase):
+    id: UUID
+
+class CustomPricingBase(BaseSchema):
+    date: str
+    price_per_hour: Decimal
+
+class CustomPricingCreate(CustomPricingBase):
+    pass
+
+class CustomPricingResponse(CustomPricingBase):
+    id: UUID
+
 class SpaceAddonBase(BaseSchema):
     name: str
     description: Optional[str] = None
@@ -76,6 +109,8 @@ class SpaceBase(BaseSchema):
     pricing_mode: ListingPricingMode = ListingPricingMode.PER_HOUR
     price: Decimal  # Valor base (interpretação depende do pricing_mode)
     price_per_hour: Optional[Decimal] = None  # Compat: usado se pricing_mode == PER_HOUR
+    price_per_hour_weekend: Optional[Decimal] = None
+    price_per_hour_holiday: Optional[Decimal] = None
     weekday_discount_percent: int = 0
     
     # Entrega (para EQUIPMENT)
@@ -110,6 +145,7 @@ class SpaceBase(BaseSchema):
     # Limits
     min_hours: int = 2
     max_hours: int = 12
+    buffer_minutes: int = 0
     max_guests: Optional[int] = None  # Opcional para equipamentos
     allows_pets: bool = False
     pet_rules: Optional[str] = None
@@ -146,6 +182,9 @@ class SpaceCreate(SpaceBase):
     availability_rules: List[AvailabilityRuleCreate] = []
     pricing_tiers: List[SpacePricingTierCreate] = []
     addons: List[SpaceAddonCreate] = []
+    blocked_dates: List[BlockedDateCreate] = []
+    availability_exceptions: List[AvailabilityExceptionCreate] = []
+    custom_pricing: List[CustomPricingCreate] = []
 
 class SpaceUpdate(BaseSchema):
     title: Optional[str] = None
@@ -177,6 +216,9 @@ class SpaceResponse(SpaceBase):
     availability_rules: List[AvailabilityRuleResponse]
     pricing_tiers: List[SpacePricingTierResponse]
     addons: List[SpaceAddonResponse]
+    blocked_dates: List[BlockedDateResponse] = []
+    availability_exceptions: List[AvailabilityExceptionResponse] = []
+    custom_pricing: List[CustomPricingResponse] = []
     host: UserSummary
     category: CategoryResponse
     created_at: datetime

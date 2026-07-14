@@ -65,6 +65,7 @@ class SpaceService:
         city: str = None, category_id: UUID = None, 
         min_price: float = None, max_price: float = None,
         lat: float = None, lng: float = None, radius_km: float = 50.0,
+        search_query: str = None, min_rating: float = None,
         # Filtros avançados
         min_guests: int = None, instant_book: bool = None,
         allows_smoking: bool = None, allows_alcohol: bool = None,
@@ -82,7 +83,7 @@ class SpaceService:
             selectinload(Space.pricing_tiers),
             selectinload(Space.addons),
             selectinload(Space.host)
-        ).where(Space.is_active == True)
+        ).where(Space.is_active == True, Space.is_approved == True)
         
         if city:
             query = query.where(Space.city.ilike(f"{city}%"))
@@ -95,6 +96,20 @@ class SpaceService:
             
         if max_price is not None:
             query = query.where(Space.price <= max_price)
+            
+        if min_rating is not None:
+            query = query.where(Space.average_rating >= min_rating)
+            
+        if search_query:
+            # Busca textual simples usando ILIKE (no título e descrição)
+            # Obs: Para bases gigantescas, o ideal é usar tsvector. Mas o ilike resolve para MVPs/fases iniciais
+            search_term = f"%{search_query}%"
+            query = query.where(
+                (Space.title.ilike(search_term)) | 
+                (Space.description.ilike(search_term)) |
+                (Space.city.ilike(search_term)) |
+                (Space.neighborhood.ilike(search_term))
+            )
         
         # Capacidade mínima de convidados
         if min_guests is not None:
@@ -178,6 +193,21 @@ class SpaceService:
         ).where(Space.host_id == host_id).limit(limit).offset(offset)
         result = await self.db.execute(query)
         return list(result.scalars().all())
+
+    async def autocomplete_spaces(self, query_str: str, limit: int = 5) -> list[dict]:
+        """
+        Retorna sugestões rápidas baseadas no nome da cidade ou título do espaço.
+        """
+        search_term = f"%{query_str}%"
+        query = select(Space.id, Space.title, Space.city, Space.state).where(
+            Space.is_active == True,
+            Space.is_approved == True,
+            (Space.title.ilike(search_term)) | (Space.city.ilike(search_term))
+        ).limit(limit)
+        
+        result = await self.db.execute(query)
+        rows = result.all()
+        return [{"id": str(r.id), "title": r.title, "city": r.city, "state": r.state} for r in rows]
 
     async def update(self, space_id: UUID, host_id: UUID, space_in: SpaceUpdate) -> Space:
         space = await self.get(space_id)

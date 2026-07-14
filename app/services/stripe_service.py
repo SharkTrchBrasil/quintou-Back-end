@@ -100,14 +100,36 @@ def create_booking_checkout_session(
             'transfer_data': {
                 'destination': host_account_id,
             },
+            'metadata': {
+                'booking_id': booking_id,
+            }
+        },
+        metadata={
+            'booking_id': booking_id,
         },
         success_url=success_url,
         cancel_url=cancel_url,
-        metadata={
-            'booking_id': booking_id,
-            'base_amount': str(base_amount),
-            'host_earnings': str(host_earnings),
-            'application_fee': str(application_fee),
-        }
     )
     return session.url
+
+
+def process_refund(payment_intent_id: str, amount: float = None) -> stripe.Refund:
+    """
+    Processa um reembolso na Stripe.
+    Se amount for None, reembolsa o valor total. Caso contrário, reembolsa parcialmente (em reais).
+    A Stripe reverte automaticamente o transfer para o host associado ao Destination Charge.
+    """
+    kwargs = {
+        "payment_intent": payment_intent_id,
+        "reverse_transfer": True,
+        "refund_application_fee": True,
+    }
+    
+    if amount is not None:
+        kwargs["amount"] = int(amount * 100)
+        
+    try:
+        return stripe.Refund.create(**kwargs)
+    except stripe.error.StripeError as e:
+        raise Exception(f"Stripe refund error: {str(e)}")
+

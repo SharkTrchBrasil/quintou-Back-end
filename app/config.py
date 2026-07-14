@@ -28,12 +28,21 @@ class Settings(BaseSettings):
     STRIPE_WEBHOOK_SECRET: str = ""
     
     FIREBASE_CREDENTIALS_PATH: str = "firebase-credentials.json"
+    FIREBASE_CREDENTIALS_JSON: str | None = None
+    
+    # Redis
+    REDIS_URL: str = "redis://localhost:6379/0"
     
     # CPF Hub
     CPFHUB_API_KEY: str | None = None
     
     # Mapbox
     MAPBOX_ACCESS_TOKEN: str | None = None
+    
+    # Didit (KYC)
+    DIDIT_API_KEY: str | None = None
+    DIDIT_WEBHOOK_SECRET: str | None = None
+    DIDIT_WORKFLOW_ID: str | None = None
     
     # Email Configuration
     EMAIL_FROM: str = "noreply@quintou.com"

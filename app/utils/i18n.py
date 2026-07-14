@@ -1,32 +1,64 @@
-import json
-from typing import Dict, Any
+"""
+Internationalization utilities
+Sistema simples de tradução para mensagens de erro
+"""
 
-# Estrutura super simples de i18n
-# Para um app mais complexo, pode-se usar Babel ou gettext
-_translations: Dict[str, Dict[str, str]] = {
-    "pt-BR": {
-        "user_not_found": "Usuário não encontrado.",
-        "space_not_found": "Espaço não encontrado.",
-        "invalid_credentials": "Email ou senha incorretos.",
-        "email_already_exists": "Email já cadastrado.",
-        "cpf_already_exists": "CPF já cadastrado.",
-        "phone_already_exists": "Telefone já cadastrado.",
-        "booking_conflict": "O espaço já está reservado nesse horário.",
-        "invalid_booking_status": "Status de reserva inválido para esta ação."
-    },
-    "en-US": {
-        "user_not_found": "User not found.",
-        "space_not_found": "Space not found.",
-        "invalid_credentials": "Incorrect email or password.",
-        "email_already_exists": "Email already registered.",
-        "cpf_already_exists": "CPF already registered.",
-        "phone_already_exists": "Phone already registered.",
-        "booking_conflict": "The space is already booked for this time.",
-        "invalid_booking_status": "Invalid booking status for this action."
-    }
+# Dicionário de traduções PT-BR
+TRANSLATIONS = {
+    "space_not_found": "Espaço não encontrado",
+    "booking_not_found": "Reserva não encontrada",
+    "email_already_exists": "Email já cadastrado no sistema",
+    "invalid_credentials": "Email ou senha incorretos",
+    "user_not_found": "Usuário não encontrado",
+    "unauthorized": "Não autorizado",
+    "forbidden": "Acesso negado",
+    "payment_failed": "Falha no processamento do pagamento",
+    "booking_conflict": "Conflito de horário. Este espaço já está reservado para o horário solicitado",
+    "invalid_token": "Token inválido ou expirado",
+    "space_not_available": "Espaço não disponível para o período solicitado",
+    "insufficient_balance": "Saldo insuficiente",
+    "invalid_date": "Data inválida",
+    "invalid_time": "Horário inválido",
+    "past_date_not_allowed": "Não é possível fazer reservas para datas passadas",
+    "max_guests_exceeded": "Número de convidados excede o limite do espaço",
+    "min_hours_not_met": "Reserva não atende o mínimo de horas exigido",
+    "max_hours_exceeded": "Reserva excede o máximo de horas permitido",
 }
 
-def _(key: str, locale: str = "pt-BR") -> str:
-    """Retorna a tradução baseada na chave e locale."""
-    lang = _translations.get(locale, _translations["pt-BR"])
-    return lang.get(key, key)
+
+def _(key: str) -> str:
+    """
+    Função de tradução simples.
+    
+    Args:
+        key: Chave da tradução
+    
+    Returns:
+        Texto traduzido ou a própria chave se não encontrar
+    """
+    return TRANSLATIONS.get(key, key)
+
+
+def add_translation(key: str, value: str):
+    """
+    Adiciona uma nova tradução dinamicamente.
+    
+    Args:
+        key: Chave da tradução
+        value: Texto traduzido
+    """
+    TRANSLATIONS[key] = value
+
+
+def get_translation(key: str, default: str = None) -> str:
+    """
+    Obtém uma tradução com fallback.
+    
+    Args:
+        key: Chave da tradução
+        default: Valor padrão se não encontrar
+    
+    Returns:
+        Texto traduzido ou default
+    """
+    return TRANSLATIONS.get(key, default or key)

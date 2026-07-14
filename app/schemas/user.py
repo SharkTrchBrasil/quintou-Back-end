@@ -15,10 +15,18 @@ class UserBase(BaseSchema):
 class UserCreate(UserBase):
     password: str = Field(min_length=8)
     is_host: bool = False
+    device_id: Optional[str] = None
+    device_model: Optional[str] = None
+    os_version: Optional[str] = None
+    app_version: Optional[str] = None
 
 class UserLogin(BaseSchema):
     email: EmailStr
     password: str
+    device_id: Optional[str] = None
+    device_model: Optional[str] = None
+    os_version: Optional[str] = None
+    app_version: Optional[str] = None
 
 class UserUpdate(BaseSchema):
     full_name: Optional[str] = None
@@ -28,6 +36,7 @@ class UserUpdate(BaseSchema):
     document_type: Optional[str] = None
     document_url: Optional[str] = None
     selfie_url: Optional[str] = None
+    address_proof_url: Optional[str] = None
 
 class UserResponse(UserBase):
     id: UUID
@@ -36,6 +45,7 @@ class UserResponse(UserBase):
     email_verified: bool
     phone_verified: bool
     kyc_status: str
+    address_proof_url: Optional[str] = None
     is_verified_host: bool
     is_pro_host: bool
     hosting_since: Optional[datetime] = None

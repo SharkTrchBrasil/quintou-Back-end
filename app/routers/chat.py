@@ -11,30 +11,7 @@ from typing import Dict, List
 
 router = APIRouter(tags=["Chat"])
 
-# Manager super simples em memória para WebSockets. 
-# Para escalar, usar Redis Pub/Sub.
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: Dict[UUID, List[WebSocket]] = {}
-
-    async def connect(self, conversation_id: UUID, websocket: WebSocket):
-        await websocket.accept()
-        if conversation_id not in self.active_connections:
-            self.active_connections[conversation_id] = []
-        self.active_connections[conversation_id].append(websocket)
-
-    def disconnect(self, conversation_id: UUID, websocket: WebSocket):
-        if conversation_id in self.active_connections:
-            self.active_connections[conversation_id].remove(websocket)
-            if not self.active_connections[conversation_id]:
-                del self.active_connections[conversation_id]
-
-    async def broadcast_to_conversation(self, conversation_id: UUID, message: dict):
-        if conversation_id in self.active_connections:
-            for connection in self.active_connections[conversation_id]:
-                await connection.send_json(message)
-
-manager = ConnectionManager()
+from app.websockets.chat import manager
 
 @router.post("/conversations", response_model=ConversationResponse)
 async def start_conversation(
@@ -70,7 +47,6 @@ async def send_message_booking(
     
     # Notifica via WebSocket
     await manager.broadcast_to_conversation(
-        conv.id,
         {
             "type": "new_message", 
             "data": {
@@ -84,7 +60,8 @@ async def send_message_booking(
                     "avatar_url": current_user.avatar_url
                 }
             }
-        }
+        },
+        [conv.host_id, conv.guest_id]
     )
     return msg
 
@@ -101,24 +78,27 @@ async def send_message(
     chat_service = ChatService(db)
     msg = await chat_service.send_message(current_user.id, conversation_id, msg_in)
     
-    # Notifica via WebSocket
-    await manager.broadcast_to_conversation(
-        conversation_id,
-        {
-            "type": "new_message", 
-            "data": {
-                "id": str(msg.id), 
-                "content": msg.content, 
-                "sender_id": str(msg.sender_id),
-                "created_at": msg.created_at.isoformat(),
-                "sender": {
-                    "id": str(current_user.id),
-                    "full_name": current_user.full_name,
-                    "avatar_url": current_user.avatar_url
+    conv = await chat_service.db.get(chat_service.db.bind.mapper.class_manager.class_, conversation_id) # Need to fetch conv for participants. Actually chat_service.db.get(Conversation, conversation_id)
+    from app.models.chat import Conversation
+    conv = await chat_service.db.get(Conversation, conversation_id)
+    if conv:
+        await manager.broadcast_to_conversation(
+            {
+                "type": "new_message", 
+                "data": {
+                    "id": str(msg.id), 
+                    "content": msg.content, 
+                    "sender_id": str(msg.sender_id),
+                    "created_at": msg.created_at.isoformat(),
+                    "sender": {
+                        "id": str(current_user.id),
+                        "full_name": current_user.full_name,
+                        "avatar_url": current_user.avatar_url
+                    }
                 }
-            }
-        }
-    )
+            },
+            [conv.host_id, conv.guest_id]
+        )
     return msg
 
 @router.get("/conversations", response_model=List[ConversationResponse])
@@ -131,7 +111,10 @@ async def list_conversations(
     chat_service = ChatService(db)
     return await chat_service.list_conversations(current_user.id, limit=limit, offset=offset)
 
+from fastapi_cache.decorator import cache
+
 @router.get("/conversations/unread-total")
+@cache(expire=60)
 async def get_total_unread(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -177,7 +160,12 @@ async def websocket_chat(
         await websocket.close(code=1008)
         return
 
-    await manager.connect(conversation_id, websocket)
+    await manager.connect(websocket, current_user.id)
+    
+    from app.models.chat import Conversation
+    conv = await chat_service.db.get(Conversation, conversation_id)
+    participant_ids = [conv.host_id, conv.guest_id] if conv else [current_user.id]
+
     try:
         import json
         while True:
@@ -200,7 +188,6 @@ async def websocket_chat(
                     
                     # Broadcast
                     await manager.broadcast_to_conversation(
-                        conversation_id,
                         {
                             "type": "new_message", 
                             "data": {
@@ -214,15 +201,16 @@ async def websocket_chat(
                                     "avatar_url": current_user.avatar_url
                                 }
                             }
-                        }
+                        },
+                        participant_ids
                     )
                 
                 elif payload.get("type") == "typing":
                     await manager.broadcast_to_conversation(
-                        conversation_id,
-                        {"type": "user_typing", "user_id": str(current_user.id)}
+                        {"type": "user_typing", "user_id": str(current_user.id)},
+                        participant_ids
                     )
             except json.JSONDecodeError:
                 pass
     except WebSocketDisconnect:
-        manager.disconnect(conversation_id, websocket)
+        manager.disconnect(websocket, current_user.id)

@@ -26,9 +26,9 @@ class NotificationService:
         
         # Load user to get fcm_token
         user = await self.db.get(User, user_id)
-        if user and user.fcm_token:
+        if user and user.firebase_token:
             FirebaseService.send_push_notification(
-                fcm_token=user.fcm_token,
+                fcm_token=user.firebase_token,
                 title=title,
                 body=body,
                 data=data or {}

@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, EmailStr, Field
 
 class RefreshTokenRequest(BaseModel):
@@ -9,3 +10,7 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str = Field(min_length=8)
+
+class AcceptTermsRequest(BaseModel):
+    version: str
+    ip_address: Optional[str] = None

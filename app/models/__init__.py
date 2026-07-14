@@ -9,7 +9,9 @@ from app.models.chat import Conversation, Message
 from app.models.favorite import Favorite
 from app.models.notification import Notification, NotificationType
 from app.models.report import Report, ReportReason, ReportStatus
+from app.models.wallet import Wallet, Transaction
 from app.models.password_reset import PasswordResetToken
+from app.models.address_proof import AddressProof, AddressProofStatus
 
 __all__ = [
     "Category",
@@ -35,5 +37,7 @@ __all__ = [
     "ReportReason",
     "ReportStatus",
     "SpacePromotion",
-    "PasswordResetToken"
+    "PasswordResetToken",
+    "AddressProof",
+    "AddressProofStatus"
 ]
