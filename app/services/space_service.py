@@ -103,7 +103,7 @@ class SpaceService:
             selectinload(Space.blocked_dates),
             selectinload(Space.availability_exceptions),
             selectinload(Space.custom_pricing)
-        ).where(Space.is_active == True, Space.is_approved == True)
+        ).where(Space.is_active == True)
         
         if city:
             query = query.where(Space.city.ilike(f"{city}%"))
