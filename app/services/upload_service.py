@@ -63,8 +63,6 @@ class UploadService:
         # Sanitiza extensão
         ext = ext.lower()[:10]  # Previne extensões maliciosas
         
-        file_key = f"{folder}/{uuid.uuid4()}.{ext}"
-        
         # Mapear content type correto para o S3 se vier genérico do Flutter
         final_content_type = file.content_type
         if final_content_type == 'application/octet-stream':
@@ -72,6 +70,23 @@ class UploadService:
             elif ext == 'png': final_content_type = 'image/png'
             elif ext == 'webp': final_content_type = 'image/webp'
             elif ext == 'gif': final_content_type = 'image/gif'
+
+        # Convert image to WebP if it's an image
+        if final_content_type.startswith('image/') and final_content_type != 'image/gif':
+            try:
+                from PIL import Image
+                import io
+                image = Image.open(BytesIO(contents))
+                # Convert to RGB if it has alpha and we want to save space, but webp supports alpha
+                webp_buffer = io.BytesIO()
+                image.save(webp_buffer, format="WEBP", quality=80)
+                contents = webp_buffer.getvalue()
+                ext = 'webp'
+                final_content_type = 'image/webp'
+            except Exception as e:
+                logger.error(f"Failed to convert image to WebP: {e}")
+
+        file_key = f"{folder}/{uuid.uuid4()}.{ext}"
 
         try:
             self.s3_client.upload_fileobj(
