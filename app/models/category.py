@@ -23,4 +23,4 @@ class Category(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    amenities_config = relationship("CategoryAmenity", back_populates="category", order_by="CategoryAmenity.order", cascade="all, delete-orphan")
+    amenities_config = relationship("CategoryAmenity", back_populates="category", order_by="CategoryAmenity.order", cascade="all, delete-orphan", lazy="selectin")
