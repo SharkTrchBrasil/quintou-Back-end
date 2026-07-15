@@ -1,6 +1,7 @@
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 from fastapi import HTTPException
 from app.models.category import Category
 from app.utils.i18n import _
@@ -10,7 +11,7 @@ class CategoryService:
         self.db = db
 
     async def list_categories(self, active_only: bool = True) -> list[Category]:
-        query = select(Category)
+        query = select(Category).options(selectinload(Category.amenities_config))
         if active_only:
             query = query.where(Category.is_active == True)
         query = query.order_by(Category.order)
@@ -19,7 +20,7 @@ class CategoryService:
         return list(result.scalars().all())
 
     async def get_by_slug(self, slug: str) -> Category:
-        query = select(Category).where(Category.slug == slug)
+        query = select(Category).options(selectinload(Category.amenities_config)).where(Category.slug == slug)
         result = await self.db.execute(query)
         category = result.scalars().first()
         if not category:

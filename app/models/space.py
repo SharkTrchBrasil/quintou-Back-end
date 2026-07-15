@@ -14,6 +14,8 @@ class AddonPricingType(str, enum.Enum):
 class ListingType(str, enum.Enum):
     SPACE = "SPACE"         # Espaço físico (piscina, quadra, chácara)
     EQUIPMENT = "EQUIPMENT" # Equipamento para aluguel (pula-pula, mesas)
+    SERVICE = "SERVICE"     # Serviço profissional (DJ, fotógrafo, buffet)
+    VEHICLE = "VEHICLE"     # Veículo/embarcação (lancha, jet ski, motorhome)
 
 class ListingPricingMode(str, enum.Enum):
     PER_HOUR = "PER_HOUR"   # Piscina: R$50/hr
@@ -38,11 +40,11 @@ class Space(Base):
     category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id"), nullable=False)
     
     # Localização
-    address_line = Column(String, nullable=False)
-    city = Column(String, nullable=False)
-    state = Column(String, nullable=False)
-    zip_code = Column(String, nullable=False)
-    neighborhood = Column(String, nullable=False)
+    address_line = Column(String, nullable=True)
+    city = Column(String, nullable=True)
+    state = Column(String, nullable=True)
+    zip_code = Column(String, nullable=True)
+    neighborhood = Column(String, nullable=True)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     
@@ -89,7 +91,7 @@ class Space(Base):
     min_hours = Column(Integer, default=2)
     max_hours = Column(Integer, default=12)
     buffer_minutes = Column(Integer, default=0) # Tempo de limpeza/preparação entre reservas
-    max_guests = Column(Integer, nullable=False)
+    max_guests = Column(Integer, nullable=True)
     allows_pets = Column(Boolean, default=False)
     pet_rules = Column(Text, nullable=True)
     allows_children = Column(Boolean, default=True)
@@ -111,6 +113,21 @@ class Space(Base):
     privacy_description = Column(Text, nullable=True)
     
     tour_360_url = Column(String, nullable=True)
+    
+    # Campos SERVICE
+    service_area_description = Column(Text, nullable=True)
+    years_experience = Column(Integer, nullable=True)
+    portfolio_url = Column(String, nullable=True)
+    
+    # Campos VEHICLE
+    vehicle_make = Column(String, nullable=True)
+    vehicle_model = Column(String, nullable=True)
+    vehicle_year = Column(Integer, nullable=True)
+    vehicle_length_ft = Column(Float, nullable=True)
+    engine_hp = Column(Integer, nullable=True)
+    has_captain = Column(Boolean, default=False)
+    requires_license = Column(Boolean, default=False)
+    embark_location = Column(String, nullable=True)
     
     amenities = Column(JSONB, default=[])
     tags = Column(JSONB, default=[]) # Ex: ["Corporate events", "Parties"]

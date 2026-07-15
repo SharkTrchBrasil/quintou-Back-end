@@ -1,4 +1,5 @@
 from app.models.category import Category
+from app.models.category_amenity import CategoryAmenity
 from app.models.user import User
 from app.models.space import Space, SpaceImage, AvailabilityRule, SpacePricingTier, SpaceAddon
 from app.models.promotion import SpacePromotion
@@ -15,6 +16,7 @@ from app.models.address_proof import AddressProof, AddressProofStatus
 
 __all__ = [
     "Category",
+    "CategoryAmenity",
     "User",
     "Space",
     "SpaceImage",

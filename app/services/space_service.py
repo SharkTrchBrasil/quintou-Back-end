@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy import func
 from fastapi import HTTPException
-from app.models.space import Space, SpaceImage, AvailabilityRule, SpacePricingTier, SpaceAddon
+from app.models.space import Space, SpaceImage, AvailabilityRule, SpacePricingTier, SpaceAddon, BlockedDate, AvailabilityException, CustomPricing
 from app.schemas.space import SpaceCreate, SpaceUpdate
 from app.utils.i18n import _
 from app.utils.geocoding import get_lat_lng_from_address
@@ -41,7 +41,11 @@ class SpaceService:
             if coords:
                 lat, lng = coords
 
-        space_data = space_in.model_dump(exclude={"availability_rules", "pricing_tiers", "addons", "latitude", "longitude"})
+        space_data = space_in.model_dump(exclude={
+            "availability_rules", "pricing_tiers", "addons", 
+            "blocked_dates", "availability_exceptions", "custom_pricing",
+            "latitude", "longitude"
+        })
         db_space = Space(**space_data, host_id=host_id, latitude=lat, longitude=lng)
         
         self.db.add(db_space)
@@ -58,6 +62,15 @@ class SpaceService:
         for addon_in in space_in.addons:
             db_addon = SpaceAddon(**addon_in.model_dump(), space_id=db_space.id)
             self.db.add(db_addon)
+            
+        for bd in space_in.blocked_dates:
+            self.db.add(BlockedDate(**bd.model_dump(), space_id=db_space.id))
+
+        for ae in space_in.availability_exceptions:
+            self.db.add(AvailabilityException(**ae.model_dump(), space_id=db_space.id))
+
+        for cp in space_in.custom_pricing:
+            self.db.add(CustomPricing(**cp.model_dump(), space_id=db_space.id))
             
         await self.db.commit()
         await self.db.refresh(db_space)

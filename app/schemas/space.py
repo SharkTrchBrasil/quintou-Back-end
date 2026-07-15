@@ -1,7 +1,7 @@
 from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from decimal import Decimal
 from app.schemas.common import BaseSchema
 from app.models.space import CancellationPolicy, AddonPricingType, ListingType, ListingPricingMode
@@ -99,11 +99,11 @@ class SpaceBase(BaseSchema):
     category_id: UUID
     
     # Location
-    address_line: str
-    city: str
-    state: str
-    zip_code: str
-    neighborhood: str
+    address_line: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    zip_code: Optional[str] = None
+    neighborhood: Optional[str] = None
     
     # Pricing
     pricing_mode: ListingPricingMode = ListingPricingMode.PER_HOUR
@@ -168,6 +168,21 @@ class SpaceBase(BaseSchema):
     privacy_description: Optional[str] = None
     tour_360_url: Optional[str] = None
     
+    # SERVICE fields
+    service_area_description: Optional[str] = None
+    years_experience: Optional[int] = None
+    portfolio_url: Optional[str] = None
+    
+    # VEHICLE fields
+    vehicle_make: Optional[str] = None
+    vehicle_model: Optional[str] = None
+    vehicle_year: Optional[int] = None
+    vehicle_length_ft: Optional[float] = None
+    engine_hp: Optional[int] = None
+    has_captain: bool = False
+    requires_license: bool = False
+    embark_location: Optional[str] = None
+    
     amenities: List[str] = []
     tags: List[str] = []
     
@@ -186,6 +201,22 @@ class SpaceCreate(SpaceBase):
     availability_exceptions: List[AvailabilityExceptionCreate] = []
     custom_pricing: List[CustomPricingCreate] = []
 
+    @model_validator(mode='after')
+    def validate_by_listing_type(self):
+        lt = self.listing_type
+        if lt == ListingType.SPACE:
+            if not self.max_guests:
+                raise ValueError("max_guests é obrigatório para SPACE")
+            if not self.address_line:
+                raise ValueError("Endereço é obrigatório para SPACE")
+        elif lt == ListingType.SERVICE:
+            if not self.service_area_description and not self.address_line:
+                raise ValueError("Informe a área de atuação ou endereço")
+        elif lt == ListingType.VEHICLE:
+            if not self.max_guests:
+                raise ValueError("Capacidade de passageiros é obrigatória para veículos")
+        return self
+
 class SpaceUpdate(BaseSchema):
     title: Optional[str] = None
     description: Optional[str] = None
@@ -198,6 +229,19 @@ class SpaceUpdate(BaseSchema):
     amenities: Optional[List[str]] = None
     rules: Optional[str] = None
     is_active: Optional[bool] = None
+    # SERVICE fields
+    service_area_description: Optional[str] = None
+    years_experience: Optional[int] = None
+    portfolio_url: Optional[str] = None
+    # VEHICLE fields
+    vehicle_make: Optional[str] = None
+    vehicle_model: Optional[str] = None
+    vehicle_year: Optional[int] = None
+    vehicle_length_ft: Optional[float] = None
+    engine_hp: Optional[int] = None
+    has_captain: Optional[bool] = None
+    requires_license: Optional[bool] = None
+    embark_location: Optional[str] = None
 
 class SpaceResponse(SpaceBase):
     id: UUID
