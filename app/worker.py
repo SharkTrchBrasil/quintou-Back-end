@@ -42,5 +42,13 @@ celery_app.conf.update(
             "task": "app.tasks.reminder_tasks.send_upcoming_booking_reminders",
             "schedule": crontab(hour=12, minute=0), # Todo dia as 12h UTC
         },
+        "request-reviews-daily": {
+            "task": "app.tasks.reminder_tasks.request_reviews",
+            "schedule": crontab(hour=10, minute=0), # Todo dia as 10h UTC
+        },
+        "weekly-host-summary": {
+            "task": "app.tasks.reminder_tasks.weekly_host_summary",
+            "schedule": crontab(hour=9, minute=0, day_of_week=1), # Toda segunda 9h UTC
+        },
     }
 )

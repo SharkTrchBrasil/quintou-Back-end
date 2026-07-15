@@ -12,7 +12,16 @@ class NotificationService:
     def __init__(self, db: AsyncSession):
         self.db = db
         
-    async def create_notification(self, user_id: UUID, n_type: NotificationType, title: str, body: str, data: dict = None) -> Notification:
+    async def create_notification(self, user_id: UUID, n_type: str | NotificationType, title: str, body: str, data: dict = None) -> Notification:
+        
+        # Safely convert string to Enum if needed
+        if isinstance(n_type, str):
+            try:
+                n_type = NotificationType(n_type)
+            except ValueError:
+                # Fallback to a generic type if not found
+                n_type = NotificationType.MESSAGE_RECEIVED
+                
         notif = Notification(
             user_id=user_id,
             type=n_type,
@@ -27,12 +36,17 @@ class NotificationService:
         # Load user to get fcm_token
         user = await self.db.get(User, user_id)
         if user and user.firebase_token:
-            FirebaseService.send_push_notification(
-                fcm_token=user.firebase_token,
-                title=title,
-                body=body,
-                data=data or {}
-            )
+            try:
+                FirebaseService.send_push_notification(
+                    fcm_token=user.firebase_token,
+                    title=title,
+                    body=body,
+                    data=data or {}
+                )
+            except ValueError as e:
+                if str(e) == "Invalid FCM token":
+                    user.firebase_token = None
+                    await self.db.commit()
             
         return notif
 
@@ -60,3 +74,12 @@ class NotificationService:
         ).values(is_read=True)
         await self.db.execute(stmt)
         await self.db.commit()
+
+    async def get_unread_count(self, user_id: UUID) -> int:
+        from sqlalchemy import func
+        query = select(func.count(Notification.id)).where(
+            Notification.user_id == user_id,
+            Notification.is_read == False
+        )
+        result = await self.db.execute(query)
+        return result.scalar() or 0

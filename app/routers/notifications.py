@@ -20,6 +20,15 @@ async def list_notifications(
     notification_service = NotificationService(db)
     return await notification_service.list_notifications(current_user.id, limit=limit, offset=offset)
 
+@router.get("/unread-count")
+async def get_unread_count(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    notification_service = NotificationService(db)
+    count = await notification_service.get_unread_count(current_user.id)
+    return {"unread_count": count}
+
 @router.put("/{notification_id}/read", status_code=204)
 async def mark_notification_read(
     notification_id: UUID,

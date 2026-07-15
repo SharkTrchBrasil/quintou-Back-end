@@ -76,7 +76,7 @@ class FirebaseService:
             return True
         except messaging.UnregisteredError:
             logger.warning(f"FCM token is invalid or unregistered: {fcm_token[:20]}...")
-            return False
+            raise ValueError("Invalid FCM token")
         except messaging.SenderIdMismatchError:
             logger.error("Sender ID mismatch. Check Firebase configuration.")
             return False
