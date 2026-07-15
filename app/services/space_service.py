@@ -5,6 +5,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy import func
 from fastapi import HTTPException
 from app.models.space import Space, SpaceImage, AvailabilityRule, SpacePricingTier, SpaceAddon, BlockedDate, AvailabilityException, CustomPricing
+from app.models.category import Category
 from app.schemas.space import SpaceCreate, SpaceUpdate
 from app.utils.i18n import _
 from app.utils.geocoding import get_lat_lng_from_address
@@ -19,7 +20,7 @@ class SpaceService:
             selectinload(Space.availability_rules),
             selectinload(Space.pricing_tiers),
             selectinload(Space.addons),
-            selectinload(Space.category),
+            selectinload(Space.category).selectinload(Category.amenities_config),
             selectinload(Space.host),
             selectinload(Space.blocked_dates),
             selectinload(Space.availability_exceptions),
@@ -94,7 +95,7 @@ class SpaceService:
     ) -> list[Space]:
         query = select(Space).options(
             selectinload(Space.images),
-            selectinload(Space.category),
+            selectinload(Space.category).selectinload(Category.amenities_config),
             selectinload(Space.availability_rules),
             selectinload(Space.pricing_tiers),
             selectinload(Space.addons),
@@ -204,7 +205,7 @@ class SpaceService:
     async def list_host_spaces(self, host_id: UUID, limit: int = 20, offset: int = 0) -> list[Space]:
         query = select(Space).options(
             selectinload(Space.images),
-            selectinload(Space.category),
+            selectinload(Space.category).selectinload(Category.amenities_config),
             selectinload(Space.availability_rules),
             selectinload(Space.pricing_tiers),
             selectinload(Space.addons),
