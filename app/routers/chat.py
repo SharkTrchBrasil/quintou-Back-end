@@ -9,7 +9,7 @@ from app.services.chat_service import ChatService
 from app.services.contact_filter import contains_contact_info
 from typing import Dict, List
 
-router = APIRouter(tags=["Chat"])
+router = APIRouter(prefix="/chat", tags=["Chat"])
 
 from app.websockets.chat import manager
 
