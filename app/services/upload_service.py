@@ -40,8 +40,8 @@ class UploadService:
         if allowed_types is None:
             allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 
-        # Valida content_type
-        if file.content_type not in allowed_types:
+        # Se o Flutter enviar sem mimetype, ele vem como application/octet-stream
+        if file.content_type not in allowed_types and file.content_type != 'application/octet-stream':
             logger.error(f"File type {file.content_type} not allowed")
             raise ValueError(f"Tipo de arquivo não permitido. Permitidos: {', '.join(allowed_types)}")
 
@@ -64,6 +64,14 @@ class UploadService:
         ext = ext.lower()[:10]  # Previne extensões maliciosas
         
         file_key = f"{folder}/{uuid.uuid4()}.{ext}"
+        
+        # Mapear content type correto para o S3 se vier genérico do Flutter
+        final_content_type = file.content_type
+        if final_content_type == 'application/octet-stream':
+            if ext in ['jpg', 'jpeg']: final_content_type = 'image/jpeg'
+            elif ext == 'png': final_content_type = 'image/png'
+            elif ext == 'webp': final_content_type = 'image/webp'
+            elif ext == 'gif': final_content_type = 'image/gif'
 
         try:
             self.s3_client.upload_fileobj(
@@ -71,7 +79,7 @@ class UploadService:
                 self.bucket,
                 file_key,
                 ExtraArgs={
-                    'ContentType': file.content_type,
+                    'ContentType': final_content_type,
                     'CacheControl': 'public, max-age=31536000, immutable',
                 }
             )
