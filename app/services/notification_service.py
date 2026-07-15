@@ -43,10 +43,13 @@ class NotificationService:
                     body=body,
                     data=data or {}
                 )
-            except ValueError as e:
-                if str(e) == "Invalid FCM token":
-                    user.firebase_token = None
-                    await self.db.commit()
+            except ValueError:
+                # Invalid FCM token - clear it from DB
+                user.firebase_token = None
+                await self.db.commit()
+            except Exception as push_err:
+                import logging
+                logging.getLogger(__name__).warning(f"Push notification failed for user {user_id}: {push_err}")
             
         return notif
 
