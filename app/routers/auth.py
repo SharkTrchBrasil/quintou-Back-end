@@ -44,14 +44,19 @@ async def lookup_cpf(request: CpfLookupRequest):
                 timeout=10.0
             )
             if response.status_code == 200:
-                data = response.json()
-                real_name = data.get("nome")
+                json_body = response.json()
+                if not json_body.get("success"):
+                    return CpfLookupResponse(is_valid=False, error_message="CPF não encontrado ou inválido")
+                
+                data = json_body.get("data", {})
+                real_name = data.get("name")
                 if not real_name or real_name.strip() == "":
                     return CpfLookupResponse(is_valid=False, error_message="Não foi possível obter o nome vinculado a este CPF")
+                
                 return CpfLookupResponse(
                     is_valid=True,
                     real_name=real_name.strip(),
-                    birth_date=data.get("data_nascimento"),
+                    birth_date=data.get("birthDate"),
                 )
             elif response.status_code == 404:
                 return CpfLookupResponse(is_valid=False, error_message="CPF não encontrado na base da Receita Federal")
