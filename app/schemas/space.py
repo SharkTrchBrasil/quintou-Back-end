@@ -179,8 +179,8 @@ class SpaceBase(BaseSchema):
     vehicle_year: Optional[int] = None
     vehicle_length_ft: Optional[float] = None
     engine_hp: Optional[int] = None
-    has_captain: bool = False
-    requires_license: bool = False
+    has_captain: Optional[bool] = False
+    requires_license: Optional[bool] = False
     embark_location: Optional[str] = None
     
     amenities: List[str] = []
