@@ -236,7 +236,7 @@ async def handle_typing_indicator(
         # Envia indicador
         await manager.send_personal_message(
             {
-                "type": "typing",
+                "type": "user_typing",
                 "conversation_id": str(conversation_id),
                 "user_id": str(sender_id),
                 "is_typing": is_typing
