@@ -23,13 +23,13 @@ GROUPS = {
         {"slug": "quadras-poliesportivas", "name": "Poliesportivas", "icon": "🏀", "listing_type": ListingType.SPACE, "desc": "Basquete, futsal e vôlei"},
     ],
     "NÁUTICO": [
-        {"slug": "lanchas", "name": "Lanchas", "icon": "🛥️", "listing_type": ListingType.VEHICLE, "desc": "Passeios e festas na água"},
-        {"slug": "jet-skis", "name": "Jet Skis", "icon": "🌊", "listing_type": ListingType.VEHICLE, "desc": "Aventura e adrenalina"},
-        {"slug": "veleiros", "name": "Veleiros", "icon": "⛵", "listing_type": ListingType.VEHICLE, "desc": "Tranquilidade e vento"},
+        {"slug": "lanchas", "name": "Lanchas", "icon": "🛥️", "listing_type": ListingType.VEHICLE, "desc": "Passeios e festas na água", "is_active": False},
+        {"slug": "jet-skis", "name": "Jet Skis", "icon": "🌊", "listing_type": ListingType.VEHICLE, "desc": "Aventura e adrenalina", "is_active": False},
+        {"slug": "veleiros", "name": "Veleiros", "icon": "⛵", "listing_type": ListingType.VEHICLE, "desc": "Tranquilidade e vento", "is_active": False},
     ],
     "VEÍCULOS": [
-        {"slug": "motorhomes", "name": "Motorhomes", "icon": "🚐", "listing_type": ListingType.VEHICLE, "desc": "Viagens e acampamentos"},
-        {"slug": "carros-classicos", "name": "Carros Clássicos", "icon": "🚘", "listing_type": ListingType.VEHICLE, "desc": "Para casamentos e ensaios"},
+        {"slug": "motorhomes", "name": "Motorhomes", "icon": "🚐", "listing_type": ListingType.VEHICLE, "desc": "Viagens e acampamentos", "is_active": False},
+        {"slug": "carros-classicos", "name": "Carros Clássicos", "icon": "🚘", "listing_type": ListingType.VEHICLE, "desc": "Para casamentos e ensaios", "is_active": False},
     ],
     "SERVIÇOS": [
         {"slug": "dj", "name": "DJs", "icon": "🎧", "listing_type": ListingType.SERVICE, "desc": "Animação para sua festa"},
@@ -90,6 +90,7 @@ async def seed():
                         existing.description = cat_data["desc"]
                         existing.icon = cat_data["icon"]
                         existing.order = order_idx
+                        existing.is_active = cat_data.get("is_active", True)
                     else:
                         print(f"Adding '{cat_data['name']}'...")
                         new_cat = Category(
@@ -99,7 +100,7 @@ async def seed():
                             parent_group=group,
                             description=cat_data['desc'],
                             listing_type=cat_data['listing_type'],
-                            is_active=True,
+                            is_active=cat_data.get("is_active", True),
                             order=order_idx
                         )
                         db.add(new_cat)

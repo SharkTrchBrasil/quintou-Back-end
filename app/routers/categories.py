@@ -11,9 +11,9 @@ router = APIRouter(prefix="/categories", tags=["Categorias"])
 
 @router.get("", response_model=List[CategoryResponse])
 @cache(expire=3600)
-async def list_categories(db: AsyncSession = Depends(get_db)):
+async def list_categories(city: str = None, db: AsyncSession = Depends(get_db)):
     category_service = CategoryService(db)
-    return await category_service.list_categories(active_only=True)
+    return await category_service.list_categories(active_only=True, city=city)
 
 @router.get("/{slug}", response_model=CategoryResponse)
 @cache(expire=3600)

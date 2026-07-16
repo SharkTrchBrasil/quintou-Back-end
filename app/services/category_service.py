@@ -10,10 +10,20 @@ class CategoryService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def list_categories(self, active_only: bool = True) -> list[Category]:
+    async def list_categories(self, active_only: bool = True, city: str = None) -> list[Category]:
+        from app.models.space import Space
+        from sqlalchemy import func
         query = select(Category).options(selectinload(Category.amenities_config))
         if active_only:
             query = query.where(Category.is_active == True)
+            
+        if city:
+            # Ensure category has at least one active space in the city
+            query = query.join(Space, Space.category_id == Category.id)
+            query = query.where(Space.is_active == True)
+            query = query.where(func.lower(Space.city) == func.lower(city))
+            query = query.distinct()
+            
         query = query.order_by(Category.order)
         
         result = await self.db.execute(query)
