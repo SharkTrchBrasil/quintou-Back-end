@@ -27,6 +27,7 @@ async def list_spaces(
     offset: int = Query(0, ge=0),
     city: str = None,
     category_id: UUID = None,
+    category: str = None,
     min_price: float = None,
     max_price: float = None,
     lat: float = None,
@@ -60,7 +61,7 @@ async def list_spaces(
     space_service = SpaceService(db)
     amenities_list = [a.strip() for a in amenities.split(",")] if amenities else None
     return await space_service.list_spaces(
-        limit=limit, offset=offset, city=city, category_id=category_id, 
+        limit=limit, offset=offset, city=city, category_id=category_id, category=category,
         min_price=min_price, max_price=max_price,
         lat=lat, lng=lng, radius_km=radius_km,
         search_query=search_query, min_rating=min_rating,

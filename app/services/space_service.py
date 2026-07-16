@@ -79,7 +79,7 @@ class SpaceService:
 
     async def list_spaces(
         self, limit: int = 20, offset: int = 0, 
-        city: str = None, category_id: UUID = None, 
+        city: str = None, category_id: UUID = None, category: str = None,
         min_price: float = None, max_price: float = None,
         lat: float = None, lng: float = None, radius_km: float = 50.0,
         search_query: str = None, min_rating: float = None,
@@ -110,6 +110,10 @@ class SpaceService:
         
         if category_id:
             query = query.where(Space.category_id == category_id)
+            
+        if category and category.lower() != 'tudo no quintou':
+            query = query.join(Category, Space.category_id == Category.id)
+            query = query.where(Category.name.ilike(f"%{category}%"))
             
         if min_price is not None:
             query = query.where(Space.price >= min_price)
